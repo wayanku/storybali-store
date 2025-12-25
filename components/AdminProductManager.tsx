@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, Package, 
   Settings, Key, Search,
   CheckCircle, Sparkles, ArrowRight, BarChart3,
-  Layout
+  Layout, Wifi
 } from 'lucide-react';
 import { getStoreData, updateStoreData, uploadImageToImgBB } from '../services/cloudService';
 import { getProductEnhancement } from '../services/geminiService';
@@ -50,21 +50,40 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
     const data = await getStoreData(scriptUrl);
     setIsSyncing(false);
     if (data) {
-      setLocalProducts(data);
-      onUpdateProducts(data);
+      const actualProducts = data.filter(p => p.id !== 'SETTINGS_BANNER');
+      setLocalProducts(actualProducts);
+      onUpdateProducts(actualProducts);
     } else {
       alert('⚠️ Gagal Terhubung ke Cloud!');
     }
   };
 
-  const handlePush = async (productsToPush: Product[]) => {
+  const handlePush = async (productsToPush: Product[], newBannerUrls?: string[]) => {
     if (!scriptUrl) return alert('Atur URL Google Script di menu Settings!');
     setIsUpdating(true);
-    const success = await updateStoreData(scriptUrl, productsToPush);
+    
+    // Siapkan data lengkap termasuk Row Pengaturan Banner agar tersinkron ke semua user
+    const currentBanners = newBannerUrls || bannerUrls;
+    const bannerSettingRow: Product = {
+      id: 'SETTINGS_BANNER',
+      name: 'System Banners',
+      price: 0,
+      category: 'System',
+      images: ['https://via.placeholder.com/100'],
+      description: JSON.stringify(currentBanners), // Simpan array banner di kolom deskripsi
+      story: 'Global Banner Configuration',
+      rating: 0,
+      soldCount: 0
+    };
+
+    const fullPayload = [bannerSettingRow, ...productsToPush];
+    const success = await updateStoreData(scriptUrl, fullPayload);
     setIsUpdating(false);
+    
     if (success) {
       onUpdateProducts(productsToPush);
-      alert('✅ Sinkronisasi Berhasil!');
+      if (newBannerUrls) onUpdateBanners(newBannerUrls);
+      alert('✅ Sinkronisasi Global Berhasil!');
     } else {
       alert('❌ Sinkronisasi Gagal.');
     }
@@ -72,7 +91,6 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
 
   const handleSaveLocal = async () => {
     if (!formData.name || !formData.price) return alert('Nama dan Harga wajib diisi!');
-    
     const cleanImages = Array.isArray(formData.images) ? formData.images.filter(img => img && img.startsWith('http')) : [];
     const productToSave = { ...formData, images: cleanImages };
 
@@ -102,25 +120,31 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
        const url = await uploadImageToImgBB(files[i], imgbbKey);
        if (url) current.push(url);
     }
+    
+    // Update local & Push langsung ke Cloud agar user lain langsung lihat perubahannya
     onUpdateBanners(current);
+    localStorage.setItem('storystore_hero_banners', JSON.stringify(current));
+    handlePush(localProducts, current);
+    
     setIsUploading(false);
   };
 
   const removeBanner = (idx: number) => {
     const newList = bannerUrls.filter((_, i) => i !== idx);
     onUpdateBanners(newList);
+    localStorage.setItem('storystore_hero_banners', JSON.stringify(newList));
+    handlePush(localProducts, newList);
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-32 px-4 md:px-6">
-      {/* Header Admin */}
       <div className="bg-white p-5 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 border border-stone-100">
         <div className="flex items-center gap-4 w-full md:w-auto">
           <div className="bg-stone-900 text-[#ee4d2d] p-4 rounded-2xl shadow-lg"><Package size={20}/></div>
           <div>
             <h1 className="text-xl font-bold text-stone-900 tracking-tight">Seller Center</h1>
             <div className="flex items-center gap-2">
-              <span className="text-[9px] text-emerald-500 font-black uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">System Online</span>
+              <span className="text-[9px] text-emerald-500 font-black uppercase tracking-widest bg-emerald-50 px-2 py-0.5 rounded-full">System Live</span>
             </div>
           </div>
         </div>
@@ -138,27 +162,22 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
 
       {activeTab === 'inventory' ? (
         <div className="space-y-6">
-          {/* Controls */}
           <div className="bg-white p-4 rounded-3xl border border-stone-100 flex flex-col md:flex-row items-center justify-between gap-4">
              <div className="flex items-center gap-3 w-full md:flex-1">
                 <div className="relative flex-1">
                    <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={14} />
-                   <input 
-                     type="text" 
-                     placeholder="Search inventory..." 
-                     value={searchQuery}
-                     onChange={(e) => setSearchQuery(e.target.value)}
-                     className="w-full bg-stone-50 border-none rounded-2xl pl-12 pr-6 py-3 text-xs font-bold outline-none focus:ring-2 focus:ring-orange-50 transition-all"
-                   />
+                   <input type="text" placeholder="Search inventory..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-stone-50 border-none rounded-2xl pl-12 pr-6 py-3 text-xs font-bold outline-none" />
                 </div>
                 <div className="flex items-center gap-2">
                    <button onClick={handleFetch} className="p-3 bg-stone-50 text-stone-400 rounded-xl hover:text-[#ee4d2d] transition-colors"><RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''}/></button>
-                   <button onClick={() => handlePush(localProducts)} className="p-3 bg-stone-900 text-white rounded-xl hover:bg-[#ee4d2d] transition-colors shadow-lg"><Save size={14}/></button>
+                   <button onClick={() => handlePush(localProducts)} className="p-3 bg-stone-900 text-white rounded-xl hover:bg-[#ee4d2d] shadow-lg flex items-center gap-2 px-6">
+                      {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <Save size={14}/>}
+                      <span className="text-[10px] font-black uppercase tracking-widest">Update Cloud</span>
+                   </button>
                 </div>
              </div>
           </div>
 
-          {/* List */}
           <div className="space-y-3">
              {localProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
                <div key={p.id} className="bg-white p-4 rounded-[1.8rem] border border-stone-100 shadow-sm flex items-center gap-4 group">
@@ -179,16 +198,16 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
         </div>
       ) : (
         <div className="space-y-8">
-           {/* Multi-Banner Management */}
            <div className="bg-white p-6 md:p-10 rounded-[2.5rem] shadow-sm border border-stone-100 space-y-8">
               <div className="flex items-center gap-4">
                  <div className="p-4 bg-orange-50 text-[#ee4d2d] rounded-2xl"><Layout size={28} /></div>
                  <div>
-                    <h3 className="text-xl font-bold text-stone-900 tracking-tight">Homepage Hero Banners</h3>
-                    <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest mt-1">Sistem Slider Otomatis (Tambah/Hapus Foto)</p>
+                    <h3 className="text-xl font-bold text-stone-900 tracking-tight">Global Banner Cloud Sync</h3>
+                    <p className="text-[10px] text-stone-400 font-black uppercase tracking-widest mt-1 flex items-center gap-2">
+                       <Wifi size={10} className="text-emerald-500 animate-pulse" /> Setiap perubahan banner akan otomatis muncul di semua layar pengguna.
+                    </p>
                  </div>
               </div>
-              
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                  {bannerUrls.map((url, i) => (
                     <div key={i} className="relative aspect-[16/9] rounded-2xl overflow-hidden bg-stone-100 border border-stone-100 group shadow-sm">
@@ -198,25 +217,14 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
                        </div>
                     </div>
                  ))}
-                 <button 
-                    onClick={() => multiBannerInputRef.current?.click()}
-                    disabled={isUploading}
-                    className="aspect-[16/9] border-2 border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center text-stone-300 hover:border-[#ee4d2d] hover:text-[#ee4d2d] transition-all bg-stone-50"
-                 >
+                 <button onClick={() => multiBannerInputRef.current?.click()} disabled={isUploading} className="aspect-[16/9] border-2 border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center text-stone-300 hover:border-[#ee4d2d] hover:text-[#ee4d2d] transition-all bg-stone-50">
                     {isUploading ? <Loader2 className="animate-spin" size={24} /> : <Plus size={32} />}
-                    <span className="text-[9px] font-black uppercase mt-2 tracking-widest">Add Banner</span>
+                    <span className="text-[9px] font-black uppercase mt-2 tracking-widest">Add Global Banner</span>
                  </button>
               </div>
               <input type="file" multiple className="hidden" ref={multiBannerInputRef} accept="image/*" onChange={handleMultiBannerUpload} />
-              
-              <div className="p-6 bg-orange-50/50 rounded-2xl border border-orange-100/50">
-                 <p className="text-[10px] text-orange-600 font-bold leading-relaxed">
-                   * Tips: Gunakan gambar dengan aspek rasio 21:9 atau landscape agar tampilan slider maksimal. Foto pertama akan menjadi slide utama. Slider akan bergeser otomatis setiap 5 detik.
-                 </p>
-              </div>
            </div>
 
-           {/* Cloud & Key Settings */}
            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-stone-100 space-y-4">
                  <h3 className="text-sm font-black uppercase tracking-widest text-stone-400">Cloud Sync URL</h3>
@@ -230,7 +238,6 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
         </div>
       )}
 
-      {/* Editor Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] bg-stone-950/80 md:backdrop-blur-xl flex items-center justify-center">
           <div className="bg-white w-full max-w-6xl md:rounded-[2.5rem] h-full md:h-[90vh] flex flex-col lg:flex-row overflow-hidden animate-in fade-in zoom-in-95">
@@ -269,7 +276,6 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
                   <span className="text-[10px] font-black text-[#ee4d2d] uppercase tracking-[0.4em]">Product Editor</span>
                   <h3 className="text-2xl md:text-4xl font-bold text-stone-900 mt-2">{editingProduct ? 'Update Inventory' : 'New Product'}</h3>
                </div>
-               
                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 flex-1">
                   <div className="col-span-1 md:col-span-2 space-y-3">
                      <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Name</label>
@@ -286,25 +292,10 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
                      </select>
                   </div>
                   <div className="col-span-1 md:col-span-2 space-y-3">
-                     <div className="flex justify-between items-center px-1">
-                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Details</label>
-                        <button 
-                          onClick={async () => {
-                             if (!formData.name) return alert('Name first!');
-                             setIsEnhancing(true);
-                             const desc = await getProductEnhancement(formData.name, formData.description || '');
-                             setFormData({...formData, description: desc});
-                             setIsEnhancing(false);
-                          }}
-                          className="text-[9px] font-black text-[#ee4d2d] uppercase tracking-widest flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full hover:bg-stone-900 hover:text-white transition-all"
-                        >
-                           {isEnhancing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} AI Optimize
-                        </button>
-                     </div>
+                     <div className="flex justify-between items-center px-1"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Details</label><button onClick={async () => { if (!formData.name) return alert('Name first!'); setIsEnhancing(true); const desc = await getProductEnhancement(formData.name, formData.description || ''); setFormData({...formData, description: desc}); setIsEnhancing(false); }} className="text-[9px] font-black text-[#ee4d2d] uppercase tracking-widest flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full hover:bg-stone-900 hover:text-white transition-all">{isEnhancing ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />} AI Optimize</button></div>
                      <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-stone-50 border border-stone-100 rounded-[2rem] p-6 text-sm h-40 resize-none outline-none leading-relaxed" placeholder="Product details..."></textarea>
                   </div>
                </div>
-
                <div className="flex flex-col sm:flex-row gap-4 mt-12 pb-6 md:pb-0">
                   <button onClick={() => setIsModalOpen(false)} className="order-2 sm:order-1 flex-1 py-5 bg-stone-100 rounded-2xl text-xs font-black uppercase tracking-widest text-stone-400">Cancel</button>
                   <button onClick={handleSaveLocal} className="order-1 sm:order-2 flex-[2] py-5 bg-stone-900 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-2xl active:scale-95 transition-all">Save Changes</button>
