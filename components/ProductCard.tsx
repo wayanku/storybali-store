@@ -1,13 +1,12 @@
 
 import React from 'react';
 import { Product } from '../types';
-import { Star, MapPin, Heart } from 'lucide-react';
+import { Star, MapPin, Heart, ShoppingBag } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
   onAddToCart: (p: Product) => void;
   onViewDetail: (p: Product) => void;
-  // Fix: Added missing props to match App.tsx usage
   onToggleWishlist?: (p: Product) => void;
   isWishlisted?: boolean;
 }
@@ -16,7 +15,6 @@ const ProductCard: React.FC<ProductCardProps> = ({
   product, 
   onAddToCart, 
   onViewDetail,
-  // Fix: Added missing props to destructuring
   onToggleWishlist,
   isWishlisted
 }) => {
@@ -26,14 +24,21 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <div 
-      className="bg-white rounded-sm shadow-sm overflow-hidden cursor-pointer group flex flex-col h-full hover:shadow-md hover:ring-1 hover:ring-[#ee4d2d]/20 transition-all"
+      className="bg-white rounded-2xl shadow-sm overflow-hidden cursor-pointer group flex flex-col h-full hover:shadow-xl hover:-translate-y-1 transition-all duration-300 border border-stone-100 relative"
       onClick={() => onViewDetail(product)}
     >
+      {/* Top Badge Overlay */}
+      {product.discountTag && (
+        <div className="absolute top-0 right-0 z-10 bg-[#ee4d2d] text-white text-[9px] font-black px-2 py-1 rounded-bl-xl shadow-lg">
+          {product.discountTag}
+        </div>
+      )}
+
       <div className="relative aspect-square overflow-hidden bg-stone-50">
         <img 
           src={mainImage} 
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
           loading="lazy"
         />
         
@@ -43,52 +48,46 @@ const ProductCard: React.FC<ProductCardProps> = ({
             e.stopPropagation();
             onToggleWishlist?.(product);
           }}
-          className="absolute top-2 left-2 p-1.5 rounded-full bg-white/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+          className={`absolute top-2 left-2 p-2 rounded-xl backdrop-blur-md transition-all duration-300 ${isWishlisted ? 'bg-red-500 text-white' : 'bg-white/70 text-stone-400 hover:bg-white'}`}
         >
-          <Heart size={14} className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-stone-400'} />
+          <Heart size={16} fill={isWishlisted ? 'currentColor' : 'none'} />
         </button>
 
-        {/* Discount Badge */}
-        {product.discountTag ? (
-          <div className="absolute top-0 right-0 bg-yellow-400 text-[#ee4d2d] text-[10px] font-black px-1.5 py-0.5 rounded-bl-sm">
-            {product.discountTag.includes('%') ? product.discountTag : 'PROMO'}
-          </div>
-        ) : (
-          <div className="absolute top-0 left-0 bg-[#ee4d2d] text-white text-[9px] font-bold px-1.5 py-0.5 rounded-br-sm shadow-sm">
-            Mall
-          </div>
-        )}
+        {/* Quick Add Overlay */}
+        <div className="absolute inset-x-0 bottom-0 p-3 translate-y-full group-hover:translate-y-0 transition-transform duration-300">
+           <button 
+             onClick={(e) => {
+               e.stopPropagation();
+               onAddToCart(product);
+             }}
+             className="w-full bg-[#ee4d2d] text-white py-2 rounded-lg text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2 shadow-xl"
+           >
+             <ShoppingBag size={14} /> + Keranjang
+           </button>
+        </div>
       </div>
       
-      <div className="p-2.5 flex flex-col flex-grow space-y-1.5">
-        <h3 className="text-[11px] md:text-xs font-medium text-stone-800 line-clamp-2 leading-[1.3] h-[32px]">
+      <div className="p-4 flex flex-col flex-grow space-y-2">
+        <h3 className="text-xs font-bold text-stone-700 line-clamp-2 leading-relaxed min-h-[2.5rem] group-hover:text-[#ee4d2d] transition-colors">
           {product.name}
         </h3>
         
         <div className="flex flex-col">
-           <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="text-[#ee4d2d] text-sm md:text-base font-bold">
-                Rp {product.price.toLocaleString('id-ID')}
-              </span>
-           </div>
+           <span className="text-[#ee4d2d] text-base font-black">
+             Rp {product.price.toLocaleString('id-ID')}
+           </span>
            {product.originalPrice && (
-              <span className="text-stone-300 line-through text-[9px]">Rp {product.originalPrice.toLocaleString('id-ID')}</span>
+              <span className="text-stone-300 line-through text-[10px]">Rp {product.originalPrice.toLocaleString('id-ID')}</span>
            )}
         </div>
 
-        <div className="flex items-center gap-1 text-[9px] text-stone-400">
-           <MapPin size={10} className="shrink-0" />
-           <span className="truncate">Kab. Gianyar</span>
-        </div>
-
-        <div className="mt-auto pt-1 flex items-center justify-between">
-          <div className="flex items-center gap-0.5">
-            <Star size={10} fill="#ffce3d" className="text-yellow-400" />
-            <span className="text-[10px] text-stone-500 font-medium">{product.rating || 5.0}</span>
+        <div className="mt-auto pt-3 flex items-center justify-between border-t border-stone-50">
+          <div className="flex items-center gap-1 text-[10px] text-stone-500 font-bold">
+            <Star size={12} fill="#ffce3d" className="text-yellow-400" />
+            <span>{product.rating}</span>
           </div>
-          <div className="h-2.5 w-[1px] bg-stone-100"></div>
-          <span className="text-[10px] text-stone-400 truncate max-w-[50%]">
-            Terjual {product.soldCount > 999 ? '1rb+' : product.soldCount}
+          <span className="text-[10px] text-stone-300 font-bold uppercase tracking-tighter">
+            {product.soldCount > 999 ? '1rb+' : product.soldCount} Terjual
           </span>
         </div>
       </div>

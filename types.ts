@@ -6,11 +6,22 @@ export interface Product {
   originalPrice?: number;
   description: string;
   category: string;
-  images: string[]; // Diubah menjadi array string
+  images: string[];
   story: string;
   rating: number;
   soldCount: number;
+  stock?: number;
   discountTag?: string;
+  reviews?: Review[];
+}
+
+export interface Review {
+  id: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  date: string;
+  avatar?: string;
 }
 
 export interface CartItem extends Product {
@@ -23,5 +34,6 @@ export enum AppRoute {
   PRODUCT_DETAIL = 'product-detail',
   CART = 'cart',
   CHECKOUT = 'checkout',
-  ADMIN = 'admin'
+  ADMIN = 'admin',
+  WISHLIST = 'wishlist'
 }
