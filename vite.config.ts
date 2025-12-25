@@ -3,10 +3,15 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
 export default defineConfig({
-  // Jika deploy ke GitHub Pages, ganti '/' menjadi '/nama-repo-anda/'
+  // Gunakan './' agar path file relatif, aman untuk GitHub Pages maupun Vercel
   base: './',
   plugins: [react()],
   define: {
-    'process.env': process.env
+    // Memastikan process.env tersedia di sisi client (penting untuk API_KEY)
+    'process.env': {}
+  },
+  build: {
+    outDir: 'dist',
+    sourcemap: false
   }
 });
