@@ -6,7 +6,7 @@ export interface Product {
   originalPrice?: number;
   description: string;
   category: string;
-  image: string;
+  images: string[]; // Diubah menjadi array string
   story: string;
   rating: number;
   soldCount: number;

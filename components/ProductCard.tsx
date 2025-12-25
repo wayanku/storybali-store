@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Product } from '../types';
-import { Star, ShoppingCart, Tag } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -18,52 +18,54 @@ const formatRupiah = (amount: number) => {
 };
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onViewDetail }) => {
+  const mainImage = product.images && product.images.length > 0 ? product.images[0] : 'https://via.placeholder.com/400';
+
   return (
     <div 
-      className="bg-white rounded-2xl overflow-hidden hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all duration-500 border border-stone-100 cursor-pointer flex flex-col h-full group"
+      className="bg-white rounded-sm overflow-hidden hover:shadow-md hover:border-[#ee4d2d] border border-transparent transition-all cursor-pointer flex flex-col h-full group shopee-shadow"
       onClick={() => onViewDetail(product)}
     >
-      <div className="relative aspect-[4/5] bg-stone-50 overflow-hidden">
+      <div className="relative aspect-square overflow-hidden bg-gray-50">
         <img 
-          src={product.image} 
+          src={mainImage} 
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
         />
         {product.discountTag && (
-          <div className="absolute top-4 left-4 bg-orange-600 text-white font-black text-[10px] px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
-            <Tag size={10} /> {product.discountTag}
+          <div className="absolute top-0 right-0 bg-[#ffd424] text-[#ee4d2d] font-bold text-[10px] px-2 py-1 flex flex-col items-center">
+            <span>{product.discountTag}</span>
           </div>
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
       
-      <div className="p-5 flex flex-col flex-grow">
-        <div className="flex justify-between items-start mb-2">
-           <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{product.category}</span>
-           <div className="flex items-center gap-1 text-yellow-500">
-              <Star size={10} fill="currentColor" />
-              <span className="text-[10px] font-bold text-stone-600">{product.rating}</span>
-           </div>
-        </div>
-        
-        <h3 className="text-sm font-bold text-stone-800 line-clamp-2 mb-3 group-hover:text-emerald-700 transition-colors">
+      <div className="p-2 flex flex-col flex-grow">
+        <h3 className="text-xs text-gray-800 line-clamp-2 mb-2 leading-relaxed min-h-[2.5rem]">
           {product.name}
         </h3>
         
-        <div className="mt-auto space-y-3">
-          <div className="flex flex-col">
-            {product.originalPrice && (
-              <span className="text-stone-400 line-through text-[10px]">{formatRupiah(product.originalPrice)}</span>
-            )}
-            <span className="text-emerald-800 font-black text-lg">{formatRupiah(product.price)}</span>
+        <div className="mt-auto">
+          <div className="flex items-center gap-1 mb-1">
+            <span className="text-[10px] px-1 bg-[#fbebed] text-[#ee4d2d] border border-[#ee4d2d] rounded-sm">Pilihan</span>
           </div>
-          
-          <button 
-            onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-            className="w-full bg-stone-900 text-white group-hover:bg-emerald-800 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
-          >
-            <ShoppingCart size={14} /> TAMBAHKAN
-          </button>
+
+          <div className="flex items-baseline gap-1">
+            <span className="text-[#ee4d2d] text-sm font-medium">Rp</span>
+            <span className="text-[#ee4d2d] text-base font-bold">
+              {product.price.toLocaleString('id-ID')}
+            </span>
+          </div>
+
+          {product.originalPrice && (
+            <span className="text-gray-400 line-through text-[10px]">{formatRupiah(product.originalPrice)}</span>
+          )}
+
+          <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center gap-0.5">
+              <Star size={10} fill="#ffce3d" stroke="none" />
+              <span className="text-[10px] text-gray-600">{product.rating}</span>
+            </div>
+            <span className="text-[10px] text-gray-500">{product.soldCount > 1000 ? `${(product.soldCount/1000).toFixed(1)}rb` : product.soldCount} Terjual</span>
+          </div>
         </div>
       </div>
     </div>

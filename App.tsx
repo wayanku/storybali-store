@@ -7,51 +7,32 @@ import ProductCard from './components/ProductCard';
 import ChatWidget from './components/ChatWidget';
 import AdminProductManager from './components/AdminProductManager';
 import { 
-  ArrowRight,
-  ArrowLeft, // Fix: Added missing import for ArrowLeft
-  Trash2, 
-  Plus, 
-  Minus, 
-  Sparkles,
-  Zap,
-  ChevronRight,
-  Truck,
-  ShieldCheck,
-  CreditCard,
-  Star,
-  ShoppingCart,
-  ShoppingBag,
-  PackageSearch,
-  Image as ImageIcon,
-  Globe
+  ArrowRight, ArrowLeft, Trash2, Plus, Minus, 
+  Sparkles, Star, ShoppingCart, ShoppingBag, 
+  ChevronLeft, ChevronRight, CheckCircle2,
+  MapPin, Truck, ShieldCheck, CreditCard
 } from 'lucide-react';
 import { getProductEnhancement, generateMarketingImage } from './services/geminiService';
 import { getStoreData } from './services/cloudService';
-
-const formatRupiah = (amount: number) => {
-  return new Intl.NumberFormat('id-ID', {
-    style: 'currency',
-    currency: 'IDR',
-    minimumFractionDigits: 0
-  }).format(amount);
-};
 
 const App: React.FC = () => {
   const [route, setRoute] = useState<AppRoute>(AppRoute.HOME);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [marketingImg, setMarketingImg] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [activeImageIdx, setActiveImageIdx] = useState(0);
+
+  // Form Checkout
+  const [address, setAddress] = useState({ name: '', phone: '', detail: '' });
 
   useEffect(() => {
     const initApp = async () => {
       setIsLoading(true);
-      const urlParams = new URLSearchParams(window.location.search);
-      const scriptUrl = urlParams.get('api') || localStorage.getItem('storybali_script_url');
+      const scriptUrl = localStorage.getItem('storybali_script_url');
       
       if (scriptUrl) {
+        // SELALU coba ambil dari Cloud dulu agar update Admin muncul di mana saja
         const cloudData = await getStoreData(scriptUrl);
         if (cloudData && cloudData.length > 0) {
           setProducts(cloudData);
@@ -90,7 +71,7 @@ const App: React.FC = () => {
       }
       return [...prev, { ...product, quantity: 1 }];
     });
-    alert(`${product.name} ditambahkan ke keranjang!`);
+    alert(`${product.name} dimasukkan ke keranjang!`);
   };
 
   const removeFromCart = (id: string) => {
@@ -109,157 +90,150 @@ const App: React.FC = () => {
 
   const handleViewDetail = (product: Product) => {
     setSelectedProduct(product);
-    setMarketingImg(null);
+    setActiveImageIdx(0);
     setRoute(AppRoute.PRODUCT_DETAIL);
     window.scrollTo(0, 0);
   };
 
+  const handleWhatsAppCheckout = () => {
+    if (!address.name || !address.phone) return alert('Mohon lengkapi data pengiriman!');
+    const itemsStr = cart.map(item => `- ${item.name} (x${item.quantity})`).join('%0A');
+    const msg = `Halo StoryBali Store!%0A%0ASaya ingin memesan:%0A${itemsStr}%0A%0ATotal: Rp ${cartTotal.toLocaleString('id-ID')}%0A%0APenerima: ${address.name}%0ANo.HP: ${address.phone}%0AAlamat: ${address.detail}`;
+    window.open(`https://wa.me/6281234567890?text=${msg}`);
+    setCart([]);
+    setRoute(AppRoute.HOME);
+  };
+
   const renderHome = () => (
-    <div className="animate-fade-in space-y-20 pb-20">
-      {/* Luxury Hero Banner */}
-      <section className="relative h-[80vh] min-h-[600px] overflow-hidden bg-stone-900 flex items-center">
-        <img src="https://images.unsplash.com/photo-1555400038-63f5ba517a47?auto=format&fit=crop&q=80&w=2000" className="absolute inset-0 w-full h-full object-cover opacity-50 scale-110" alt="Hero" />
-        <div className="absolute inset-0 bg-gradient-to-r from-stone-950 to-transparent" />
-        <div className="relative max-w-7xl mx-auto px-8 w-full">
-           <div className="max-w-2xl space-y-8">
-              <span className="text-orange-500 font-black tracking-[0.4em] uppercase text-xs">Cultural Heritage Excellence</span>
-              <h1 className="text-6xl sm:text-8xl font-black text-white leading-[0.9] tracking-tighter">KEAGUNGAN SENI BALI.</h1>
-              <p className="text-stone-300 text-lg font-medium leading-relaxed max-w-lg">Temukan keajaiban karya tangan pengrajin terbaik dari desa-desa tersembunyi di Pulau Dewata langsung ke genggaman Anda.</p>
-              <div className="flex gap-4">
-                 <button onClick={() => setRoute(AppRoute.CATALOG)} className="px-12 py-5 bg-emerald-700 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-emerald-600 transition-all shadow-2xl shadow-emerald-950/40">Mulai Jelajah</button>
-              </div>
+    <div className="space-y-12 pb-20 bg-[#f5f5f5]">
+      {/* Shopee Style Banner */}
+      <section className="relative h-[250px] md:h-[400px] bg-[#ee4d2d] flex items-center overflow-hidden">
+        <div className="absolute right-0 top-0 w-1/2 h-full opacity-30">
+           <img src="https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" />
+        </div>
+        <div className="relative max-w-7xl mx-auto px-6 w-full text-white">
+           <div className="max-w-xl space-y-4">
+              <h1 className="text-3xl md:text-5xl font-bold tracking-tight">KADO TERBAIK DARI BALI</h1>
+              <p className="text-sm md:text-lg opacity-90">Dukung pengrajin lokal, lestarikan budaya Pulau Dewata.</p>
+              <button onClick={() => setRoute(AppRoute.CATALOG)} className="px-8 py-3 bg-white text-[#ee4d2d] font-bold rounded-sm shadow-lg hover:bg-gray-100 transition-all">BELANJA SEKARANG</button>
            </div>
         </div>
       </section>
 
-      {/* Featured Section */}
-      <section className="max-w-7xl mx-auto px-8">
-        <div className="flex flex-col md:flex-row justify-between items-end gap-6 mb-12">
-          <div className="space-y-4">
-             <div className="h-1.5 w-20 bg-emerald-800 rounded-full" />
-             <h2 className="text-4xl font-black text-stone-900 tracking-tighter uppercase">Koleksi Terpilih</h2>
-          </div>
-          <button onClick={() => setRoute(AppRoute.CATALOG)} className="text-stone-400 hover:text-emerald-800 font-black text-[10px] uppercase tracking-widest flex items-center gap-2 group transition-all">Lihat Semua <ArrowRight size={14} className="group-hover:translate-x-2 transition-transform"/></button>
+      {/* Categories Grid */}
+      <section className="max-w-7xl mx-auto px-4">
+        <div className="bg-white p-6 shadow-sm rounded-sm">
+           <h2 className="text-gray-400 font-bold text-xs uppercase mb-6 tracking-widest border-b pb-4">Kategori Pilihan</h2>
+           <div className="grid grid-cols-4 md:grid-cols-8 gap-4">
+              {['Fashion', 'Wellness', 'Home', 'Art', 'Souvenir', 'Jewelry', 'Food', 'Gift'].map(cat => (
+                <div key={cat} className="flex flex-col items-center gap-2 cursor-pointer group">
+                   <div className="w-12 h-12 md:w-16 md:h-16 bg-gray-50 rounded-full flex items-center justify-center group-hover:bg-orange-50 transition-colors">
+                      <ShoppingBag size={20} className="text-[#ee4d2d]" />
+                   </div>
+                   <span className="text-[10px] md:text-xs font-medium text-gray-700">{cat}</span>
+                </div>
+              ))}
+           </div>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-          {products.slice(0, 5).map(product => (
+      </section>
+
+      {/* Main Feed */}
+      <section className="max-w-7xl mx-auto px-4">
+        <div className="flex items-center justify-between mb-6 bg-[#ee4d2d] text-white p-4 rounded-t-sm">
+          <h2 className="text-lg font-bold">REKOMENDASI UNTUKMU</h2>
+          <button onClick={() => setRoute(AppRoute.CATALOG)} className="text-xs flex items-center gap-1 hover:underline">Lihat Semua <ChevronRight size={14}/></button>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2">
+          {products.map(product => (
             <ProductCard key={product.id} product={product} onAddToCart={addToCart} onViewDetail={handleViewDetail} />
           ))}
         </div>
       </section>
-
-      {/* Trust Badges */}
-      <section className="bg-stone-100 py-20">
-        <div className="max-w-7xl mx-auto px-8 grid grid-cols-1 md:grid-cols-3 gap-12">
-           <div className="flex items-start gap-6">
-              <div className="p-5 bg-white rounded-3xl shadow-sm text-emerald-800"><Truck size={32}/></div>
-              <div>
-                 <h4 className="font-black text-stone-800 uppercase text-xs tracking-widest mb-2">Global Shipping</h4>
-                 <p className="text-stone-500 text-sm font-medium">Pengiriman aman ke seluruh penjuru dunia dengan kurir terpercaya.</p>
-              </div>
-           </div>
-           <div className="flex items-start gap-6">
-              <div className="p-5 bg-white rounded-3xl shadow-sm text-emerald-800"><ShieldCheck size={32}/></div>
-              <div>
-                 <h4 className="font-black text-stone-800 uppercase text-xs tracking-widest mb-2">Authenticity</h4>
-                 <p className="text-stone-500 text-sm font-medium">Jaminan keaslian 100% dari pengrajin lokal bersertifikat StoryBali.</p>
-              </div>
-           </div>
-           <div className="flex items-start gap-6">
-              <div className="p-5 bg-white rounded-3xl shadow-sm text-emerald-800"><CreditCard size={32}/></div>
-              <div>
-                 <h4 className="font-black text-stone-800 uppercase text-xs tracking-widest mb-2">Secure Pay</h4>
-                 <p className="text-stone-500 text-sm font-medium">Sistem pembayaran terenkripsi yang mendukung bank lokal & internasional.</p>
-              </div>
-           </div>
-        </div>
-      </section>
-    </div>
-  );
-
-  const renderCatalog = () => (
-    <div className="max-w-7xl mx-auto px-8 py-20 animate-fade-in bg-stone-50">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-8 mb-16">
-        <div className="space-y-4">
-          <span className="text-emerald-700 font-black text-[10px] uppercase tracking-[0.4em]">Craftsmanship Portfolio</span>
-          <h1 className="text-5xl font-black text-stone-900 tracking-tighter uppercase">Katalog Warisan Bali</h1>
-        </div>
-        <div className="flex items-center gap-3 text-stone-400 bg-white px-6 py-3 rounded-2xl border border-stone-100 shadow-sm">
-          <PackageSearch size={18} className="text-emerald-800" /> 
-          <span className="text-xs font-black uppercase tracking-widest">{products.length} Produk Tersedia</span>
-        </div>
-      </div>
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-6">
-        {products.map(product => (
-          <ProductCard key={product.id} product={product} onAddToCart={addToCart} onViewDetail={handleViewDetail} />
-        ))}
-      </div>
     </div>
   );
 
   const renderProductDetail = () => {
     if (!selectedProduct) return null;
+    // Fix: property 'image' does not exist on type 'Product'. Use 'images' instead.
+    const images = selectedProduct.images && selectedProduct.images.length > 0 ? selectedProduct.images : ['https://via.placeholder.com/400'];
+
     return (
-      <div className="max-w-7xl mx-auto px-8 py-20 animate-fade-in">
-        <button onClick={() => setRoute(AppRoute.CATALOG)} className="flex items-center gap-3 text-stone-400 hover:text-emerald-800 mb-12 font-black text-[10px] uppercase tracking-widest group">
-          <ArrowLeft className="group-hover:-translate-x-2 transition-transform" size={16} /> Kembali Ke Galeri
-        </button>
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-20">
-          <div className="space-y-6">
-            <div className="aspect-square bg-white rounded-[3rem] overflow-hidden shadow-2xl border-8 border-white ring-1 ring-stone-100 relative group">
-              <img src={marketingImg || selectedProduct.image} className="w-full h-full object-cover" alt={selectedProduct.name} />
-              {isEnhancing && (
-                <div className="absolute inset-0 bg-stone-950/40 backdrop-blur-md flex flex-col items-center justify-center text-white">
-                   <div className="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin mb-4" />
-                   <p className="text-[10px] font-black uppercase tracking-widest animate-pulse">AI Mengolah Visual...</p>
-                </div>
-              )}
+      <div className="bg-[#f5f5f5] py-4 md:py-10">
+        <div className="max-w-6xl mx-auto bg-white shadow-sm p-4 md:p-8 flex flex-col md:flex-row gap-10">
+          {/* Left: Images */}
+          <div className="w-full md:w-1/2 space-y-4">
+            <div className="aspect-square bg-gray-50 rounded-sm overflow-hidden border">
+              <img src={images[activeImageIdx]} className="w-full h-full object-cover" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-               <button onClick={async () => {
-                 setIsEnhancing(true);
-                 const img = await generateMarketingImage(selectedProduct.name);
-                 if (img) setMarketingImg(img);
-                 setIsEnhancing(false);
-               }} disabled={isEnhancing} className="flex items-center justify-center gap-2 bg-white border border-stone-200 text-stone-800 py-4 rounded-2xl font-black text-[10px] hover:bg-stone-50 transition-all uppercase tracking-widest shadow-sm">
-                 <ImageIcon size={16} /> Iklan Visual AI
-               </button>
-               <button onClick={async () => {
-                 setIsEnhancing(true);
-                 const desc = await getProductEnhancement(selectedProduct.name, selectedProduct.description);
-                 setSelectedProduct({...selectedProduct, description: desc});
-                 setIsEnhancing(false);
-               }} disabled={isEnhancing} className="flex items-center justify-center gap-2 bg-emerald-800 text-white py-4 rounded-2xl font-black text-[10px] hover:bg-emerald-900 transition-all uppercase tracking-widest shadow-xl shadow-emerald-100">
-                 <Sparkles size={16} /> Optimasi Narasi AI
-               </button>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {images.map((img, i) => (
+                <button 
+                  key={i} 
+                  onClick={() => setActiveImageIdx(i)}
+                  className={`w-20 h-20 border-2 rounded-sm overflow-hidden flex-shrink-0 ${activeImageIdx === i ? 'border-[#ee4d2d]' : 'border-transparent'}`}
+                >
+                  <img src={img} className="w-full h-full object-cover" />
+                </button>
+              ))}
             </div>
           </div>
-          <div className="flex flex-col">
-            <div className="mb-10">
-              <span className="text-[10px] font-black text-emerald-700 uppercase tracking-[0.4em]">{selectedProduct.category}</span>
-              <h1 className="text-5xl font-black text-stone-900 mt-4 mb-6 leading-[1.1] tracking-tighter">{selectedProduct.name}</h1>
-              <div className="flex items-center gap-6">
-                <div className="flex items-center gap-2 text-yellow-500">
-                  <Star size={20} fill="currentColor" />
-                  <span className="text-sm font-black text-stone-800">{selectedProduct.rating}</span>
-                </div>
-                <div className="w-1.5 h-1.5 bg-stone-200 rounded-full" />
-                <div className="text-stone-400 text-xs font-bold uppercase tracking-widest">{selectedProduct.soldCount.toLocaleString()} Terjual</div>
+
+          {/* Right: Info */}
+          <div className="flex-1 space-y-6">
+            <h1 className="text-xl md:text-2xl font-medium text-gray-800 leading-tight">{selectedProduct.name}</h1>
+            
+            <div className="flex items-center gap-4 text-sm divide-x divide-gray-200">
+               <div className="flex items-center gap-1 text-[#ee4d2d] font-medium border-b border-[#ee4d2d]">
+                  <span>{selectedProduct.rating}</span>
+                  <div className="flex"><Star size={12} fill="#ee4d2d" stroke="none"/><Star size={12} fill="#ee4d2d" stroke="none"/><Star size={12} fill="#ee4d2d" stroke="none"/></div>
+               </div>
+               <div className="pl-4 text-gray-500">
+                  <span className="text-gray-800 font-medium">102</span> Penilaian
+               </div>
+               <div className="pl-4 text-gray-500">
+                  <span className="text-gray-800 font-medium">{selectedProduct.soldCount}</span> Terjual
+               </div>
+            </div>
+
+            <div className="bg-[#fafafa] p-6 flex flex-col gap-2">
+              {selectedProduct.originalPrice && <span className="text-gray-400 line-through text-sm">Rp {selectedProduct.originalPrice.toLocaleString('id-ID')}</span>}
+              <div className="flex items-center gap-3">
+                 <span className="text-[#ee4d2d] text-4xl font-bold">Rp {selectedProduct.price.toLocaleString('id-ID')}</span>
+                 <span className="bg-[#ee4d2d] text-white text-[10px] px-1 font-bold rounded-sm">50% OFF</span>
               </div>
             </div>
-            <div className="flex flex-col mb-12">
-              {selectedProduct.originalPrice && <span className="text-stone-400 line-through text-lg mb-1">{formatRupiah(selectedProduct.originalPrice)}</span>}
-              <span className="text-6xl font-black text-emerald-800 tracking-tighter">{formatRupiah(selectedProduct.price)}</span>
-            </div>
-            <div className="space-y-8 mb-12">
-              <p className="text-stone-600 leading-relaxed text-lg font-medium">{selectedProduct.description}</p>
-              <div className="bg-stone-100 p-8 rounded-[2rem] border-l-8 border-emerald-800">
-                <p className="text-stone-500 italic text-sm leading-relaxed font-serif">"{selectedProduct.story}"</p>
+
+            <div className="space-y-6">
+              <div className="flex gap-4 items-center">
+                 <span className="w-20 text-gray-500 text-sm">Pengiriman</span>
+                 <div className="flex items-center gap-2 text-sm text-gray-700 font-medium">
+                    <Truck size={16} className="text-green-500" /> Gratis Ongkir ke Seluruh Indonesia
+                 </div>
+              </div>
+              
+              <div className="flex gap-4">
+                <button 
+                  onClick={() => addToCart(selectedProduct)}
+                  className="flex-1 py-4 border border-[#ee4d2d] text-[#ee4d2d] bg-[#fbebed] rounded-sm font-medium flex items-center justify-center gap-2 hover:opacity-90 transition-all"
+                >
+                  <ShoppingCart size={18} /> Masukkan Keranjang
+                </button>
+                <button 
+                  onClick={() => { addToCart(selectedProduct); setRoute(AppRoute.CART); }}
+                  className="flex-1 py-4 bg-[#ee4d2d] text-white rounded-sm font-medium hover:bg-[#d73211] transition-all"
+                >
+                  Beli Sekarang
+                </button>
               </div>
             </div>
-            <button onClick={() => addToCart(selectedProduct)} className="w-full bg-stone-900 text-white py-6 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-4 hover:bg-emerald-800 transition-all shadow-2xl active:scale-95">
-              <ShoppingCart size={24} /> Masukkan Keranjang
-            </button>
+
+            <div className="pt-10 border-t space-y-4">
+              <h3 className="font-bold text-gray-800">Spesifikasi Produk</h3>
+              <p className="text-sm text-gray-600 leading-relaxed">{selectedProduct.description}</p>
+              <div className="p-4 bg-orange-50 border border-orange-100 rounded-sm">
+                 <p className="text-xs italic text-orange-800">"{selectedProduct.story}"</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -267,161 +241,141 @@ const App: React.FC = () => {
   };
 
   const renderCart = () => (
-    <div className="max-w-5xl mx-auto px-8 py-20 animate-fade-in">
-      <div className="flex items-center gap-6 mb-16">
-        <div className="w-16 h-16 bg-stone-100 rounded-3xl flex items-center justify-center text-emerald-800"><ShoppingBag size={32} /></div>
-        <div>
-           <h1 className="text-4xl font-black text-stone-900 tracking-tighter uppercase">Keranjang Anda</h1>
-           <p className="text-stone-400 text-xs font-black uppercase tracking-widest mt-1">{cartCount} Item Terpilih</p>
-        </div>
+    <div className="max-w-5xl mx-auto px-4 py-10 bg-[#f5f5f5]">
+      <div className="bg-white p-4 shadow-sm mb-4 flex items-center gap-4">
+         <div className="w-10 h-10 bg-[#ee4d2d] text-white flex items-center justify-center rounded-sm"><ShoppingBag size={20}/></div>
+         <h1 className="text-lg font-bold text-gray-800">Keranjang Belanja</h1>
       </div>
 
-      {cart.length === 0 ? (
-        <div className="text-center py-32 bg-white rounded-[3rem] border border-stone-100 shadow-sm flex flex-col items-center">
-          <div className="w-24 h-24 bg-stone-50 rounded-full flex items-center justify-center text-stone-200 mb-8"><ShoppingBag size={48} /></div>
-          <p className="text-stone-400 font-black uppercase tracking-widest mb-10 text-sm">Keranjang Anda masih kosong</p>
-          <button onClick={() => setRoute(AppRoute.CATALOG)} className="bg-emerald-800 text-white px-12 py-5 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-emerald-100">Jelajahi Produk</button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-          <div className="lg:col-span-2 space-y-6">
-            <div className="bg-white rounded-[2.5rem] shadow-sm border border-stone-100 overflow-hidden divide-y divide-stone-50">
-              {cart.map(item => (
-                <div key={item.id} className="p-8 flex flex-col sm:flex-row items-center gap-8 group">
-                  <div className="w-28 h-28 bg-stone-50 rounded-2xl overflow-hidden border border-stone-100 flex-shrink-0">
-                    <img src={item.image} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" alt={item.name} />
-                  </div>
-                  <div className="flex-1 text-center sm:text-left">
-                    <h3 className="font-black text-stone-800 text-lg mb-1 leading-tight">{item.name}</h3>
-                    <p className="text-emerald-800 font-black text-xl">{formatRupiah(item.price)}</p>
-                  </div>
-                  <div className="flex items-center gap-6">
-                    <div className="flex items-center bg-stone-100 rounded-xl p-1.5">
-                      <button onClick={() => updateQuantity(item.id, -1)} className="w-10 h-10 flex items-center justify-center text-stone-400 hover:text-emerald-800"><Minus size={18} /></button>
-                      <span className="w-10 text-center font-black text-stone-800">{item.quantity}</span>
-                      <button onClick={() => updateQuantity(item.id, 1)} className="w-10 h-10 flex items-center justify-center text-stone-400 hover:text-emerald-800"><Plus size={18} /></button>
-                    </div>
-                    <button onClick={() => removeFromCart(item.id)} className="w-12 h-12 flex items-center justify-center text-stone-200 hover:text-red-600 transition-colors"><Trash2 size={24} /></button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="space-y-6">
-            <div className="bg-emerald-900 rounded-[3rem] p-10 text-white shadow-2xl shadow-emerald-950/40">
-               <div className="space-y-4 mb-10">
-                  <div className="flex justify-between items-center text-emerald-200 font-black text-[10px] uppercase tracking-widest">
-                     <span>Subtotal</span>
-                     <span>{formatRupiah(cartTotal)}</span>
-                  </div>
-                  <div className="flex justify-between items-center text-emerald-200 font-black text-[10px] uppercase tracking-widest">
-                     <span>Pengiriman</span>
-                     <span className="text-white">Gratis</span>
-                  </div>
-                  <div className="h-px bg-white/10 my-6" />
-                  <div className="flex justify-between items-end">
-                     <p className="text-[10px] font-black uppercase text-emerald-200 tracking-[0.2em] mb-1">Total Bayar</p>
-                     <p className="text-4xl font-black tracking-tighter">{formatRupiah(cartTotal)}</p>
-                  </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-2">
+           {cart.length === 0 ? (
+             <div className="bg-white p-20 text-center rounded-sm">
+                <p className="text-gray-400 mb-6">Keranjangmu kosong.</p>
+                <button onClick={() => setRoute(AppRoute.HOME)} className="bg-[#ee4d2d] text-white px-10 py-3 rounded-sm font-bold">BELANJA SEKARANG</button>
+             </div>
+           ) : (
+             cart.map(item => (
+               <div key={item.id} className="bg-white p-4 flex items-center gap-4 shadow-sm">
+                 {/* Fix: property 'image' does not exist on type 'CartItem'. Use 'images[0]' instead. */}
+                 <img src={item.images?.[0] || 'https://via.placeholder.com/200'} className="w-20 h-20 object-cover border" />
+                 <div className="flex-1">
+                   <h3 className="text-sm font-medium text-gray-800 line-clamp-1">{item.name}</h3>
+                   <p className="text-[#ee4d2d] font-bold">Rp {item.price.toLocaleString('id-ID')}</p>
+                 </div>
+                 <div className="flex items-center border rounded-sm">
+                    <button onClick={() => updateQuantity(item.id, -1)} className="p-2 text-gray-400"><Minus size={14}/></button>
+                    <span className="px-4 text-sm font-bold">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.id, 1)} className="p-2 text-gray-400"><Plus size={14}/></button>
+                 </div>
+                 <button onClick={() => removeFromCart(item.id)} className="text-gray-300 hover:text-red-500"><Trash2 size={18}/></button>
                </div>
-               <button onClick={() => setRoute(AppRoute.CHECKOUT)} className="w-full bg-white text-emerald-900 py-6 rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-orange-500 hover:text-white transition-all shadow-xl shadow-emerald-950/60 flex items-center justify-center gap-3">
-                 Lanjut Checkout <ArrowRight size={20} />
-               </button>
-            </div>
-            <div className="bg-stone-100 p-6 rounded-3xl border border-stone-200 flex items-center gap-4">
-               <ShieldCheck size={24} className="text-emerald-800" />
-               <p className="text-[9px] font-bold text-stone-500 uppercase tracking-widest leading-relaxed">StoryBali menjamin keamanan transaksi & perlindungan data artisan.</p>
-            </div>
-          </div>
+             ))
+           )}
         </div>
-      )}
+
+        <div className="bg-white p-6 shadow-sm h-fit space-y-6">
+           <h3 className="font-bold border-b pb-4">Ringkasan Belanja</h3>
+           <div className="flex justify-between text-sm">
+              <span className="text-gray-500">Total Harga ({cartCount} barang)</span>
+              <span className="font-medium">Rp {cartTotal.toLocaleString('id-ID')}</span>
+           </div>
+           <div className="flex justify-between items-end border-t pt-4">
+              <span className="text-sm font-bold">Total Tagihan</span>
+              <span className="text-xl font-bold text-[#ee4d2d]">Rp {cartTotal.toLocaleString('id-ID')}</span>
+           </div>
+           <button 
+             onClick={() => setRoute(AppRoute.CHECKOUT)}
+             disabled={cart.length === 0}
+             className="w-full bg-[#ee4d2d] text-white py-4 font-bold rounded-sm disabled:opacity-50 shadow-lg shadow-orange-100"
+           >
+             CHECKOUT
+           </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderCheckout = () => (
+    <div className="max-w-4xl mx-auto py-10 px-4">
+       <div className="bg-white p-8 shadow-sm rounded-sm space-y-10">
+          <div className="flex items-center gap-4 text-[#ee4d2d] border-b pb-6">
+             <MapPin size={24} />
+             <h1 className="text-xl font-bold uppercase tracking-tight">Alamat Pengiriman</h1>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+             <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Nama Lengkap</label>
+                <input type="text" value={address.name} onChange={e => setAddress({...address, name: e.target.value})} className="w-full bg-gray-50 border p-4 text-sm outline-none focus:border-[#ee4d2d]" placeholder="Contoh: Bli Bagus" />
+             </div>
+             <div className="space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Nomor WhatsApp</label>
+                <input type="text" value={address.phone} onChange={e => setAddress({...address, phone: e.target.value})} className="w-full bg-gray-50 border p-4 text-sm outline-none focus:border-[#ee4d2d]" placeholder="081234567XXX" />
+             </div>
+             <div className="col-span-1 md:col-span-2 space-y-2">
+                <label className="text-[10px] font-bold text-gray-400 uppercase">Alamat Lengkap (Jl/Kec/Kota)</label>
+                <textarea value={address.detail} onChange={e => setAddress({...address, detail: e.target.value})} className="w-full bg-gray-50 border p-4 text-sm h-32 outline-none focus:border-[#ee4d2d] resize-none"></textarea>
+             </div>
+          </div>
+
+          <div className="bg-gray-50 p-6 space-y-4">
+             <h3 className="font-bold text-gray-800">Pesananmu</h3>
+             {cart.map(item => (
+               <div key={item.id} className="flex justify-between text-sm">
+                  <span className="text-gray-600">{item.name} (x{item.quantity})</span>
+                  <span className="font-bold">Rp {(item.price * item.quantity).toLocaleString('id-ID')}</span>
+               </div>
+             ))}
+             <div className="border-t pt-4 flex justify-between">
+                <span className="font-bold">Total Pembayaran</span>
+                <span className="text-xl font-bold text-[#ee4d2d]">Rp {cartTotal.toLocaleString('id-ID')}</span>
+             </div>
+          </div>
+
+          <button onClick={handleWhatsAppCheckout} className="w-full bg-[#ee4d2d] text-white py-5 rounded-sm font-bold text-lg shadow-xl shadow-orange-100 flex items-center justify-center gap-3 active:scale-95 transition-all">
+             BUAT PESANAN SEKARANG
+          </button>
+       </div>
     </div>
   );
 
   if (isLoading) return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-stone-50">
-      <div className="w-16 h-16 bg-emerald-800 rounded-2xl flex items-center justify-center text-white font-black text-2xl animate-bounce shadow-2xl">S</div>
-      <div className="mt-8 flex flex-col items-center gap-2">
-         <p className="text-[10px] font-black text-stone-400 uppercase tracking-[0.4em] animate-pulse">Menghubungkan ke API Cloud...</p>
-         <div className="w-32 h-1 bg-stone-200 rounded-full overflow-hidden">
-            <div className="w-1/2 h-full bg-emerald-800 animate-[loading_1s_ease-in-out_infinite]" />
-         </div>
-      </div>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+      <div className="w-16 h-16 bg-[#ee4d2d] rounded-2xl flex items-center justify-center text-white font-black text-2xl animate-bounce">S</div>
+      <p className="mt-4 text-[10px] font-bold text-gray-400 uppercase tracking-[0.3em]">StoryBali Loading...</p>
     </div>
   );
 
   return (
-    <div className="min-h-screen flex flex-col selection:bg-emerald-100 selection:text-emerald-900 bg-stone-50">
+    <div className="min-h-screen bg-[#f5f5f5]">
       {route !== AppRoute.ADMIN && <Navbar onNavigate={setRoute} cartCount={cartCount} />}
-      <main className="flex-grow">
+      <main>
         {route === AppRoute.HOME && renderHome()}
-        {route === AppRoute.CATALOG && renderCatalog()}
+        {route === AppRoute.CATALOG && renderHome()} {/* Reusing Home as main catalog for now */}
         {route === AppRoute.PRODUCT_DETAIL && renderProductDetail()}
         {route === AppRoute.CART && renderCart()}
-        {route === AppRoute.ADMIN && <div className="py-12 bg-stone-100"><AdminProductManager products={products} onUpdateProducts={updateGlobalProducts} /></div>}
-        {route === AppRoute.CHECKOUT && (
-          <div className="py-32 text-center">
-             <div className="max-w-md mx-auto bg-white p-12 rounded-[3.5rem] shadow-2xl border border-stone-50">
-                <div className="w-20 h-20 bg-emerald-100 text-emerald-700 rounded-full flex items-center justify-center mx-auto mb-10"><ShieldCheck size={40} /></div>
-                <h1 className="text-4xl font-black mb-6 text-stone-900 tracking-tighter uppercase">Pembayaran Aman</h1>
-                <p className="text-stone-500 text-xs font-bold uppercase tracking-widest mb-12 leading-loose">Terima kasih telah mendukung pengrajin Bali. Pesanan Anda segera kami proses.</p>
-                <button onClick={() => {alert("Pesanan Berhasil!"); setCart([]); setRoute(AppRoute.HOME);}} className="w-full bg-stone-900 text-white py-6 rounded-2xl uppercase text-[11px] font-black tracking-widest shadow-xl hover:bg-emerald-800 transition-all active:scale-95">Konfirmasi & Selesai</button>
-             </div>
-          </div>
-        )}
+        {route === AppRoute.CHECKOUT && renderCheckout()}
+        {route === AppRoute.ADMIN && <div className="py-10"><AdminProductManager products={products} onUpdateProducts={updateGlobalProducts} /></div>}
       </main>
       
       {route !== AppRoute.ADMIN && (
-        <footer className="bg-white border-t border-stone-100 pt-32 pb-20">
-          <div className="max-w-7xl mx-auto px-8">
-             <div className="grid grid-cols-1 md:grid-cols-4 gap-20 mb-20">
-                <div className="col-span-1 md:col-span-2 space-y-8">
-                   <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-emerald-800 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-lg">S</div>
-                      <span className="text-xl font-black tracking-tighter text-stone-800 uppercase">StoryBali Store</span>
-                   </div>
-                   <p className="text-stone-400 font-medium text-sm leading-relaxed max-w-sm italic font-serif">"Melestarikan budaya melalui karya, menghubungkan dunia dengan keajaiban Pulau Dewata."</p>
-                </div>
-                <div className="space-y-6">
-                   <h5 className="text-[10px] font-black text-stone-900 uppercase tracking-widest">Navigasi</h5>
-                   <div className="flex flex-col gap-4 text-xs font-bold text-stone-400">
-                      <button onClick={() => setRoute(AppRoute.HOME)} className="hover:text-emerald-800 transition-colors text-left">Beranda</button>
-                      <button onClick={() => setRoute(AppRoute.CATALOG)} className="hover:text-emerald-800 transition-colors text-left">Semua Produk</button>
-                      <button className="hover:text-emerald-800 transition-colors text-left">Tentang Kami</button>
-                   </div>
-                </div>
-                <div className="space-y-6">
-                   <h5 className="text-[10px] font-black text-stone-900 uppercase tracking-widest">Artisan Support</h5>
-                   <div className="flex flex-col gap-4 text-xs font-bold text-stone-400">
-                      <span className="hover:text-emerald-800 transition-colors cursor-pointer">Menjadi Pengrajin</span>
-                      <span className="hover:text-emerald-800 transition-colors cursor-pointer">Kebijakan Pengembalian</span>
-                      <span className="hover:text-emerald-800 transition-colors cursor-pointer">Lacak Pesanan</span>
-                   </div>
-                </div>
-             </div>
-             <div className="h-px bg-stone-50 mb-10" />
-             <p className="text-[9px] text-stone-300 font-black uppercase tracking-[0.3em] text-center">&copy; 2024 StoryBali Artisan Store - Professional Heritage Commerce</p>
-          </div>
+        <footer className="bg-white border-t py-20 mt-20">
+           <div className="max-w-7xl mx-auto px-6 text-center space-y-10">
+              <div className="flex justify-center gap-4">
+                 <div className="w-12 h-12 bg-[#ee4d2d] text-white flex items-center justify-center rounded-lg font-bold">S</div>
+              </div>
+              <div className="flex flex-wrap justify-center gap-10 text-xs font-bold text-gray-400 uppercase tracking-widest">
+                 <span>Tentang StoryBali</span>
+                 <span>Pusat Pengrajin</span>
+                 <span>Ketentuan Layanan</span>
+                 <span>Privasi</span>
+              </div>
+              <p className="text-[10px] text-gray-300 font-bold uppercase tracking-[0.2em]">&copy; 2024 STORYBALI ARTISAN STORE. TERDAFTAR DI PULAU DEWATA.</p>
+           </div>
         </footer>
       )}
       <ChatWidget />
-      
-      <style>{`
-        @keyframes loading {
-          0% { transform: translateX(-100%); }
-          100% { transform: translateX(300%); }
-        }
-        .custom-scrollbar::-webkit-scrollbar {
-          width: 4px;
-        }
-        .custom-scrollbar::-webkit-scrollbar-track {
-          background: #f5f5f4;
-        }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #065f46;
-          border-radius: 10px;
-        }
-      `}</style>
     </div>
   );
 };

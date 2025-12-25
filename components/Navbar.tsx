@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { ShoppingBag, Search, User, Smartphone, Bell, Heart } from 'lucide-react';
+import { ShoppingCart, Search, User, Bell, HelpCircle } from 'lucide-react';
 import { AppRoute } from '../types';
 
 interface NavbarProps {
@@ -10,93 +10,81 @@ interface NavbarProps {
 
 const Navbar: React.FC<NavbarProps> = ({ onNavigate, cartCount }) => {
   return (
-    <header className="sticky top-0 z-50 bg-white/95 backdrop-blur-md border-b border-stone-100">
-      {/* Promo Bar */}
-      <div className="bg-stone-900 text-white text-[10px] py-2 px-6 sm:px-12 flex justify-between items-center font-black uppercase tracking-widest">
-        <div className="flex gap-6">
-          <span className="flex items-center gap-2 cursor-pointer hover:text-emerald-400 transition-colors"><Smartphone size={12}/> Install StoryBali App</span>
-          <span className="hidden sm:inline opacity-30">|</span>
-          <span className="hidden sm:inline">Follow Instagram @StoryBali</span>
-        </div>
-        <div className="flex gap-6">
-          <span className="cursor-pointer hover:text-emerald-400 transition-colors">Bantuan</span>
-          <span className="cursor-pointer hover:text-emerald-400 transition-colors font-black">Daftar</span>
-        </div>
+    <nav className="sticky top-0 z-50 bg-[#ee4d2d] shadow-md">
+      {/* Top Bar */}
+      <div className="max-w-7xl mx-auto px-4 py-2 flex justify-between items-center text-[10px] text-white/90 font-medium">
+         <div className="flex gap-4">
+            <span className="hover:text-white cursor-pointer">Seller Centre</span>
+            <span className="hover:text-white cursor-pointer border-l pl-4 border-white/20">Mulai Jual</span>
+            <span className="hover:text-white cursor-pointer border-l pl-4 border-white/20">Download</span>
+            <span className="hover:text-white cursor-pointer border-l pl-4 border-white/20 flex items-center gap-1">Ikuti kami di <User size={10}/></span>
+         </div>
+         <div className="flex gap-4">
+            <span className="flex items-center gap-1 hover:text-white cursor-pointer"><Bell size={10}/> Notifikasi</span>
+            <span className="flex items-center gap-1 hover:text-white cursor-pointer"><HelpCircle size={10}/> Bantuan</span>
+            <span className="font-bold text-white cursor-pointer">Bahasa Indonesia</span>
+         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-5 sm:px-8">
-        <div className="flex items-center gap-6 sm:gap-12">
-          {/* Brand */}
-          <div 
-            className="flex flex-shrink-0 items-center gap-3 cursor-pointer group"
-            onClick={() => onNavigate(AppRoute.HOME)}
-          >
-            <div className="w-11 h-11 bg-emerald-800 rounded-2xl flex items-center justify-center text-white font-black text-2xl shadow-xl shadow-emerald-100 group-hover:scale-110 transition-transform">S</div>
-            <div className="hidden md:block">
-              <span className="text-2xl font-black tracking-tighter text-stone-800 block leading-none">StoryBali</span>
-              <span className="text-[9px] font-bold text-stone-400 uppercase tracking-widest">Artisan Heritage</span>
+      {/* Main Nav */}
+      <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center gap-4 md:gap-10">
+         {/* Logo */}
+         <div 
+           onClick={() => onNavigate(AppRoute.HOME)}
+           className="flex items-center gap-2 cursor-pointer group"
+         >
+            <div className="w-10 h-10 bg-white text-[#ee4d2d] rounded-lg flex items-center justify-center font-black text-2xl group-hover:scale-105 transition-transform">S</div>
+            <div className="hidden sm:block">
+               <h1 className="text-white text-2xl font-bold tracking-tight leading-none">StoryBali</h1>
+               <span className="text-[10px] text-white/80 font-medium uppercase tracking-[0.2em]">Artisan Marketplace</span>
             </div>
-          </div>
+         </div>
 
-          {/* Luxury Search */}
-          <div className="flex-1 relative hidden sm:block">
-            <div className="flex bg-stone-50 rounded-2xl border border-stone-100 overflow-hidden group focus-within:ring-2 focus-within:ring-emerald-700/20 transition-all">
-              <input 
-                type="text" 
-                placeholder="Cari warisan budaya Bali terbaik..." 
-                className="flex-1 bg-transparent px-6 py-3.5 text-xs font-bold outline-none text-stone-800"
-              />
-              <button className="bg-emerald-800 text-white px-8 hover:bg-stone-900 transition-colors">
-                <Search size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="flex items-center gap-2 sm:gap-6 ml-auto">
-            <button className="p-2 text-stone-400 hover:text-emerald-800 transition-colors hidden sm:block">
-              <Heart size={24} />
+         {/* Search */}
+         <div className="flex-1 w-full bg-white rounded-sm p-1 flex shadow-lg">
+            <input 
+              type="text" 
+              placeholder="Cari warisan budaya Bali terbaik..." 
+              className="flex-1 px-4 py-2 text-sm outline-none placeholder:text-gray-300"
+            />
+            <button className="bg-[#ee4d2d] text-white px-6 py-2 rounded-sm hover:opacity-90 transition-opacity">
+               <Search size={18} />
             </button>
-            <button 
-              className="p-2 text-stone-800 hover:bg-stone-50 rounded-full relative transition-all active:scale-90"
+         </div>
+
+         {/* Cart & Account */}
+         <div className="flex items-center gap-6">
+            <div 
               onClick={() => onNavigate(AppRoute.CART)}
+              className="relative text-white cursor-pointer hover:scale-110 transition-transform"
             >
-              <ShoppingBag size={26} />
-              {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 bg-orange-600 text-white text-[9px] min-w-5 h-5 px-1.5 rounded-full flex items-center justify-center font-black border-2 border-white shadow-lg">
-                  {cartCount}
-                </span>
-              )}
+               <ShoppingCart size={28} />
+               {cartCount > 0 && (
+                 <span className="absolute -top-1 -right-1 bg-white text-[#ee4d2d] text-[10px] font-bold min-w-[18px] h-[18px] rounded-full flex items-center justify-center px-1 border-2 border-[#ee4d2d]">
+                   {cartCount}
+                 </span>
+               )}
+            </div>
+            <button 
+               onClick={() => onNavigate(AppRoute.ADMIN)}
+               className="bg-white/10 text-white border border-white/30 px-4 py-1.5 rounded-sm text-xs font-bold hover:bg-white hover:text-[#ee4d2d] transition-all"
+            >
+               ADMIN
             </button>
-            <button className="flex items-center gap-3 p-1.5 pr-4 bg-stone-50 rounded-full text-stone-800 hover:bg-stone-100 transition-all">
-               <div className="w-8 h-8 rounded-full bg-stone-200 overflow-hidden border border-white">
-                  <User size={20} className="w-full h-full p-1.5 text-stone-500" />
-               </div>
-               <span className="text-[10px] font-black uppercase tracking-widest hidden lg:block">Akun Saya</span>
-            </button>
-          </div>
-        </div>
+         </div>
       </div>
-      
-      {/* Category Nav */}
-      <nav className="bg-white border-t border-stone-50 hidden md:block">
-        <div className="max-w-7xl mx-auto px-8 flex items-center justify-between py-3">
-          <div className="flex gap-10 text-[10px] font-black text-stone-400 uppercase tracking-[0.2em]">
-            <button onClick={() => onNavigate(AppRoute.CATALOG)} className="hover:text-emerald-700 transition-colors">Semua Koleksi</button>
-            <button className="hover:text-emerald-700 transition-colors">Kriya Seni</button>
-            <button className="hover:text-emerald-700 transition-colors">Fashion Bali</button>
-            <button className="hover:text-emerald-700 transition-colors">Kesehatan Alami</button>
-            <button className="hover:text-emerald-700 transition-colors">Dekorasi Vila</button>
-          </div>
-          <button 
-            onClick={() => onNavigate(AppRoute.ADMIN)} 
-            className="text-[10px] font-black text-orange-600 border-2 border-orange-600 px-4 py-1.5 rounded-full hover:bg-orange-600 hover:text-white transition-all uppercase tracking-widest"
-          >
-            Dashboard Admin
-          </button>
-        </div>
-      </nav>
-    </header>
+
+      {/* Tags Bar */}
+      <div className="max-w-7xl mx-auto px-4 pb-2 hidden md:flex gap-4 text-[11px] text-white/80">
+         <span>Tas Rotan</span>
+         <span>Dupa Wangi</span>
+         <span>Ukir Jati</span>
+         <span>Kain Batik</span>
+         <span>Patung Bali</span>
+         <span>Lukisan Ubud</span>
+         <span>Souvenir Murah</span>
+      </div>
+    </nav>
   );
 };
 
