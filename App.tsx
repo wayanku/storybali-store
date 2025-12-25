@@ -4,15 +4,13 @@ import { AppRoute, Product, CartItem } from './types';
 import { INITIAL_PRODUCTS, GLOBAL_CONFIG } from './constants';
 import Navbar from './components/Navbar';
 import ProductCard from './components/ProductCard';
-import ChatWidget from './components/ChatWidget';
 import AdminProductManager from './components/AdminProductManager';
 import { 
   Trash2, Plus, Minus, 
-  Sparkles, Star, ShoppingCart, ShoppingBag, 
+  Star, ShoppingCart, ShoppingBag, 
   ChevronRight, MapPin, Truck, Lock, 
   Home, Grid, User, LayoutDashboard, Search,
-  ArrowRight, ShieldCheck, CreditCard, Clock,
-  Zap, Flame, Ticket, Smartphone, Gift, Coffee, Utensils, Laptop, Watch, Headphones
+  ArrowRight, Zap, Smartphone, Utensils, Laptop, Watch, Headphones
 } from 'lucide-react';
 import { getStoreData } from './services/cloudService';
 
@@ -50,7 +48,7 @@ const App: React.FC = () => {
     { name: 'Elektronik', icon: <Smartphone size={24}/> },
     { name: 'Komputer', icon: <Laptop size={24}/> },
     { name: 'Fashion', icon: <User size={24}/> },
-    { name: 'Wellness', icon: <Flame size={24}/> },
+    { name: 'Wellness', icon: <Zap size={24}/> },
     { name: 'Aksesoris', icon: <Watch size={24}/> },
     { name: 'Audio', icon: <Headphones size={24}/> },
     { name: 'Home Decor', icon: <Home size={24}/> },
@@ -575,7 +573,6 @@ const App: React.FC = () => {
          </div>
       </footer>
       <BottomNav />
-      <ChatWidget />
     </div>
   );
 };
