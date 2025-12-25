@@ -3,11 +3,12 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Product } from '../types';
 import { 
   Globe, Loader2, RefreshCw, 
-  Save, Plus, X, Edit, Trash2, Upload, 
-  Image as ImageIcon, DollarSign, Package, 
-  Settings, Key, Search, Check, AlertCircle
+  Save, Plus, X, Edit, Trash2,
+  Image as ImageIcon, Package, 
+  Settings, Key, Search, AlertCircle
 } from 'lucide-react';
 import { getStoreData, updateStoreData, uploadImageToImgBB } from '../services/cloudService';
+import { GLOBAL_CONFIG } from '../constants';
 
 interface AdminProductManagerProps {
   products: Product[];
@@ -15,8 +16,9 @@ interface AdminProductManagerProps {
 }
 
 const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onUpdateProducts }) => {
-  const [scriptUrl, setScriptUrl] = useState(localStorage.getItem('storybali_script_url') || '');
-  const [imgbbKey, setImgbbKey] = useState(localStorage.getItem('storybali_imgbb_key') || '');
+  // Gunakan Global Config sebagai default, atau local storage jika user pernah menginput manual
+  const [scriptUrl, setScriptUrl] = useState(localStorage.getItem('storybali_script_url') || GLOBAL_CONFIG.MASTER_SCRIPT_URL);
+  const [imgbbKey, setImgbbKey] = useState(localStorage.getItem('storybali_imgbb_key') || GLOBAL_CONFIG.MASTER_IMGBB_KEY);
   
   const [isSyncing, setIsSyncing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -36,44 +38,46 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
   }, [products]);
 
   const handleFetch = async () => {
-    if (!scriptUrl) return alert('Atur URL Google Script di Settings!');
+    if (!scriptUrl) return alert('Atur URL Google Script di menu Settings!');
     setIsSyncing(true);
     const data = await getStoreData(scriptUrl);
     setIsSyncing(false);
     if (data) {
       setLocalProducts(data);
       onUpdateProducts(data);
-      localStorage.setItem('storybali_script_url', scriptUrl);
-      alert('Data Berhasil Diambil!');
+      alert('Berhasil sinkronisasi dengan Google Sheets!');
+    } else {
+      alert('Gagal ambil data. Cek URL Google Script Anda.');
     }
   };
 
   const handlePush = async () => {
-    if (!scriptUrl) return alert('Atur URL Google Script di Settings!');
+    if (!scriptUrl) return alert('Atur URL Google Script di menu Settings!');
     setIsUpdating(true);
-    // Sebelum push, pastikan format data benar (terutama images array)
     const success = await updateStoreData(scriptUrl, localProducts);
     setIsUpdating(false);
     if (success) {
       onUpdateProducts(localProducts);
-      alert('Data Berhasil Di-update ke Cloud (Google Sheets)!');
+      alert('SUKSES! Data di Google Sheets sudah diperbarui. Refresh perangkat lain untuk melihat perubahan.');
+    } else {
+      alert('Gagal update ke Cloud.');
     }
   };
 
   const handleImagesUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    if (!imgbbKey) return alert('Atur API Key ImgBB di Settings!');
+    if (!imgbbKey) return alert('Masukkan API Key ImgBB di Pengaturan!');
 
     setIsUploading(true);
-    const newImages = [...(formData.images || [])];
+    const currentImages = Array.isArray(formData.images) ? [...formData.images] : [];
     
     for (let i = 0; i < files.length; i++) {
       const url = await uploadImageToImgBB(files[i], imgbbKey);
-      if (url) newImages.push(url);
+      if (url) currentImages.push(url);
     }
     
-    setFormData(prev => ({ ...prev, images: newImages }));
+    setFormData(prev => ({ ...prev, images: currentImages }));
     setIsUploading(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -91,6 +95,7 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
       id: `P-${Date.now()}`, 
       name: '', 
       price: 0, 
+      originalPrice: 0,
       category: 'Fashion', 
       images: [], 
       description: '', 
@@ -103,7 +108,7 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
 
   const openEdit = (p: Product) => {
     setEditingProduct(p);
-    setFormData({ ...p, images: p.images || [] });
+    setFormData({ ...p, images: Array.isArray(p.images) ? p.images : [] });
     setIsModalOpen(true);
   };
 
@@ -117,202 +122,210 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
     }
     setLocalProducts(newList);
     setIsModalOpen(false);
-    // Langsung ingatkan user untuk push
-    console.log("Updated locally. Don't forget to Push to Cloud.");
   };
 
   return (
     <div className="max-w-7xl mx-auto space-y-6 pb-20 px-4">
-      {/* Header Admin */}
+      {/* Admin Header */}
       <div className="bg-white p-6 rounded-lg shadow-sm flex flex-col md:flex-row justify-between items-center gap-4">
         <div className="flex items-center gap-4">
-          <div className="bg-[#ee4d2d] text-white p-3 rounded-lg shadow-lg">
+          <div className="bg-[#ee4d2d] text-white p-3 rounded-xl">
             <Package size={24} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Seller Centre StoryBali</h1>
-            <p className="text-xs text-gray-500 uppercase tracking-wider">Inventory Management System</p>
+            <h1 className="text-xl font-black text-gray-800 uppercase tracking-tight">Seller Centre StoryBali</h1>
+            <p className="text-[10px] text-gray-400 font-bold uppercase">Ubud Artisan Control</p>
           </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex bg-gray-100 p-1 rounded-lg">
           <button 
             onClick={() => setActiveTab('inventory')}
-            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'inventory' ? 'bg-[#ee4d2d] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`px-6 py-2 rounded-md text-xs font-bold transition-all ${activeTab === 'inventory' ? 'bg-white text-[#ee4d2d] shadow-sm' : 'text-gray-400'}`}
           >
             Inventori
           </button>
           <button 
             onClick={() => setActiveTab('settings')}
-            className={`px-4 py-2 rounded-md text-sm font-bold transition-all ${activeTab === 'settings' ? 'bg-[#ee4d2d] text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            className={`px-6 py-2 rounded-md text-xs font-bold transition-all ${activeTab === 'settings' ? 'bg-white text-[#ee4d2d] shadow-sm' : 'text-gray-400'}`}
           >
-            <Settings size={18} />
+            Pengaturan
           </button>
         </div>
       </div>
 
       {activeTab === 'inventory' ? (
         <div className="space-y-4">
-          {/* Sinkronisasi Bar */}
-          <div className="bg-gray-800 text-white p-4 rounded-lg flex flex-wrap justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <Globe size={18} className={scriptUrl ? 'text-green-400' : 'text-red-400'} />
-              <span className="text-xs font-medium">{scriptUrl ? 'Cloud Connected' : 'Cloud Not Configured'}</span>
+          {/* Cloud Sync Control */}
+          <div className="bg-gray-900 text-white p-5 rounded-xl flex flex-wrap justify-between items-center gap-6 shadow-xl">
+            <div>
+              <div className="flex items-center gap-3">
+                <div className={`w-2 h-2 rounded-full ${scriptUrl ? 'bg-green-500' : 'bg-red-500'}`} />
+                <span className="text-[10px] font-black uppercase tracking-widest">Koneksi Cloud</span>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">Gunakan tombol "Simpan ke Cloud" agar sinkron ke semua HP pembeli.</p>
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
-              <button onClick={handleFetch} disabled={isSyncing} className="flex-1 md:flex-none bg-white/10 hover:bg-white/20 px-4 py-2 rounded text-xs font-bold flex items-center justify-center gap-2">
-                {isSyncing ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />} Ambil Data Sheet
+            <div className="flex gap-3">
+              <button onClick={handleFetch} disabled={isSyncing} className="bg-white/10 hover:bg-white/20 px-4 py-2 rounded-lg text-[10px] font-bold flex items-center gap-2 transition-all">
+                {isSyncing ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />} Sinkronisasi
               </button>
-              <button onClick={handlePush} disabled={isUpdating} className="flex-1 md:flex-none bg-[#ee4d2d] hover:bg-[#ff5b3d] px-4 py-2 rounded text-xs font-bold flex items-center justify-center gap-2">
-                {isUpdating ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Simpan ke Sheet
+              <button onClick={handlePush} disabled={isUpdating} className="bg-[#ee4d2d] hover:bg-[#ff5b3d] px-6 py-2 rounded-lg text-[10px] font-bold flex items-center gap-2 transition-all shadow-lg">
+                {isUpdating ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />} Simpan ke Cloud
               </button>
             </div>
           </div>
 
-          {/* Table List */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden">
-            <div className="p-4 border-b border-gray-100 flex justify-between items-center">
-              <div className="relative w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+          <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
+            <div className="p-5 border-b flex flex-col md:flex-row justify-between items-center gap-4">
+              <div className="relative w-full md:w-80">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
                 <input 
                   type="text" 
                   placeholder="Cari produk..." 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full bg-gray-50 border-none rounded-md pl-10 pr-4 py-2 text-xs focus:ring-1 focus:ring-[#ee4d2d] outline-none"
+                  className="w-full bg-gray-50 border-none rounded-lg pl-12 pr-4 py-3 text-xs outline-none"
                 />
               </div>
-              <button onClick={openAdd} className="bg-[#ee4d2d] text-white px-4 py-2 rounded text-xs font-bold flex items-center gap-2 hover:opacity-90">
-                <Plus size={14} /> Tambah Produk Baru
+              <button onClick={openAdd} className="w-full md:w-auto bg-[#ee4d2d] text-white px-8 py-3 rounded-lg text-xs font-bold flex items-center justify-center gap-2">
+                <Plus size={16} /> Tambah Baru
               </button>
             </div>
 
-            <table className="w-full text-left text-xs">
-              <thead className="bg-gray-50 font-bold text-gray-500 uppercase">
-                <tr>
-                  <th className="px-6 py-4">Produk</th>
-                  <th className="px-6 py-4">Kategori</th>
-                  <th className="px-6 py-4">Harga</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50">
-                {localProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
-                  <tr key={p.id} className="hover:bg-gray-50 transition-all">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <img src={p.images?.[0] || 'https://via.placeholder.com/50'} className="w-10 h-10 object-cover rounded border" />
-                        <span className="font-bold text-gray-700">{p.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className="bg-gray-100 px-2 py-1 rounded text-gray-500">{p.category}</span>
-                    </td>
-                    <td className="px-6 py-4 font-bold text-[#ee4d2d]">Rp {p.price.toLocaleString('id-ID')}</td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-1 text-green-500"><Check size={12}/> Aktif</div>
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      <div className="flex justify-end gap-2">
-                        <button onClick={() => openEdit(p)} className="p-2 text-blue-500 hover:bg-blue-50 rounded"><Edit size={16}/></button>
-                        <button onClick={() => { if(confirm('Hapus?')) setLocalProducts(prev => prev.filter(x => x.id !== p.id))}} className="p-2 text-red-500 hover:bg-red-50 rounded"><Trash2 size={16}/></button>
-                      </div>
-                    </td>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="bg-gray-50 font-bold text-gray-400 uppercase tracking-widest border-b">
+                  <tr>
+                    <th className="px-8 py-5">Item</th>
+                    <th className="px-8 py-5">Kategori</th>
+                    <th className="px-8 py-5">Harga</th>
+                    <th className="px-8 py-5 text-right">Aksi</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="divide-y">
+                  {localProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
+                    <tr key={p.id} className="hover:bg-gray-50 transition-all">
+                      <td className="px-8 py-5">
+                        <div className="flex items-center gap-4">
+                          <img src={p.images?.[0] || 'https://via.placeholder.com/150'} className="w-10 h-10 object-cover rounded-lg border" />
+                          <span className="font-bold text-gray-700">{p.name}</span>
+                        </div>
+                      </td>
+                      <td className="px-8 py-5">
+                        <span className="bg-gray-100 text-gray-500 px-3 py-1 rounded text-[10px] font-bold uppercase">{p.category}</span>
+                      </td>
+                      <td className="px-8 py-5 font-bold text-[#ee4d2d]">Rp {p.price.toLocaleString('id-ID')}</td>
+                      <td className="px-8 py-5 text-right">
+                        <div className="flex justify-end gap-2">
+                          <button onClick={() => openEdit(p)} className="p-2 text-blue-500 hover:bg-blue-50 rounded-lg"><Edit size={16}/></button>
+                          <button onClick={() => { if(confirm('Hapus item?')) setLocalProducts(prev => prev.filter(x => x.id !== p.id))}} className="p-2 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-white p-6 rounded-lg shadow-sm space-y-4">
-             <div className="flex items-center gap-2 text-[#ee4d2d] font-bold">
-                <Globe size={18} /> <h3>Google Sheets API</h3>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="bg-white p-8 rounded-2xl shadow-sm border space-y-6">
+             <h3 className="flex items-center gap-3 text-[#ee4d2d] font-bold uppercase text-sm">
+                <Globe size={18} /> API Google Sheets
+             </h3>
+             <div className="space-y-4">
+                <p className="text-[11px] text-gray-400">Masukkan URL Web App dari Google Apps Script agar semua pengunjung melihat data yang sama.</p>
+                <input 
+                  type="text" 
+                  value={scriptUrl} 
+                  onChange={(e) => { setScriptUrl(e.target.value); localStorage.setItem('storybali_script_url', e.target.value); }}
+                  placeholder="https://script.google.com/..."
+                  className="w-full bg-gray-50 border rounded-xl p-4 text-xs font-bold outline-none"
+                />
+                <div className="p-4 bg-blue-50 border border-blue-100 rounded-xl flex gap-3 text-blue-800">
+                   <AlertCircle size={18} className="flex-shrink-0" />
+                   <p className="text-[10px] font-medium leading-relaxed">Tip: Masukkan URL ini juga di <strong>GLOBAL_CONFIG.MASTER_SCRIPT_URL</strong> pada file <code>constants.tsx</code> agar sinkron otomatis untuk user lain.</p>
+                </div>
              </div>
-             <p className="text-xs text-gray-500">Masukkan URL Web App dari Apps Script Anda.</p>
-             <input 
-               type="text" 
-               value={scriptUrl} 
-               onChange={(e) => { setScriptUrl(e.target.value); localStorage.setItem('storybali_script_url', e.target.value); }}
-               placeholder="https://script.google.com/..."
-               className="w-full bg-gray-50 border-gray-200 rounded-md p-3 text-xs outline-none focus:border-[#ee4d2d] border"
-             />
           </div>
-          <div className="bg-white p-6 rounded-lg shadow-sm space-y-4">
-             <div className="flex items-center gap-2 text-[#ee4d2d] font-bold">
-                <Key size={18} /> <h3>ImgBB API Key</h3>
+
+          <div className="bg-white p-8 rounded-2xl shadow-sm border space-y-6">
+             <h3 className="flex items-center gap-3 text-[#ee4d2d] font-bold uppercase text-sm">
+                <Key size={18} /> API Key ImgBB
+             </h3>
+             <div className="space-y-4">
+                <p className="text-[11px] text-gray-400">Dibutuhkan untuk mengunggah gambar produk.</p>
+                <input 
+                  type="password" 
+                  value={imgbbKey} 
+                  onChange={(e) => { setImgbbKey(e.target.value); localStorage.setItem('storybali_imgbb_key', e.target.value); }}
+                  placeholder="Masukkan API Key ImgBB"
+                  className="w-full bg-gray-50 border rounded-xl p-4 text-xs font-bold outline-none"
+                />
              </div>
-             <p className="text-xs text-gray-500">Key untuk upload banyak gambar sekaligus.</p>
-             <input 
-               type="password" 
-               value={imgbbKey} 
-               onChange={(e) => { setImgbbKey(e.target.value); localStorage.setItem('storybali_imgbb_key', e.target.value); }}
-               placeholder="Masukkan API Key ImgBB"
-               className="w-full bg-gray-50 border-gray-200 rounded-md p-3 text-xs outline-none focus:border-[#ee4d2d] border"
-             />
           </div>
         </div>
       )}
 
       {/* Modal Editor */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-4xl rounded-xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
-            <div className="w-full md:w-1/3 bg-gray-50 p-6 overflow-y-auto">
-               <h4 className="font-bold text-gray-700 mb-4 flex items-center gap-2"><ImageIcon size={16}/> Gambar Produk</h4>
-               <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-white w-full max-w-5xl rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row max-h-[90vh]">
+            <div className="w-full md:w-80 bg-gray-50 p-8 overflow-y-auto border-r">
+               <h4 className="font-bold text-gray-800 text-xs uppercase tracking-widest mb-6">Galeri Produk</h4>
+               <div className="grid grid-cols-2 gap-3 mb-6">
                   {(formData.images || []).map((img, i) => (
-                    <div key={i} className="relative aspect-square rounded border overflow-hidden group">
+                    <div key={i} className="relative aspect-square rounded-xl border overflow-hidden group">
                        <img src={img} className="w-full h-full object-cover" />
-                       <button onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity"><X size={10}/></button>
+                       <button onClick={() => removeImage(i)} className="absolute top-1 right-1 bg-red-500 text-white rounded-lg p-1 opacity-0 group-hover:opacity-100"><X size={12}/></button>
                     </div>
                   ))}
                   <button 
                     onClick={() => fileInputRef.current?.click()}
-                    className="aspect-square border-2 border-dashed border-gray-300 rounded flex flex-col items-center justify-center text-gray-400 hover:text-[#ee4d2d] hover:border-[#ee4d2d] transition-all"
+                    disabled={isUploading}
+                    className="aspect-square border-2 border-dashed border-gray-300 rounded-xl flex flex-col items-center justify-center text-gray-400 hover:text-[#ee4d2d] hover:border-[#ee4d2d] transition-all bg-white"
                   >
                     {isUploading ? <Loader2 className="animate-spin" /> : <Plus />}
-                    <span className="text-[10px] mt-1">Tambah</span>
+                    <span className="text-[9px] mt-2 font-bold uppercase">Tambah</span>
                   </button>
                </div>
                <input type="file" multiple className="hidden" ref={fileInputRef} accept="image/*" onChange={handleImagesUpload} />
             </div>
 
-            <div className="flex-1 p-8 overflow-y-auto">
-               <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-lg font-bold text-gray-800">{editingProduct ? 'Edit Produk' : 'Produk Baru'}</h3>
-                  <button onClick={() => setIsModalOpen(false)}><X size={20}/></button>
+            <div className="flex-1 p-10 overflow-y-auto">
+               <div className="flex justify-between items-center mb-8">
+                  <h3 className="text-2xl font-black text-gray-800 tracking-tighter uppercase">{editingProduct ? 'Edit Produk' : 'Tambah Baru'}</h3>
+                  <button onClick={() => setIsModalOpen(false)} className="text-gray-400 hover:text-gray-800 transition-colors"><X size={24}/></button>
                </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="col-span-2 space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Nama Produk</label>
-                    <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-gray-50 border p-3 rounded-md outline-none focus:border-[#ee4d2d]" />
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nama Lengkap</label>
+                    <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-gray-50 border rounded-xl px-6 py-4 text-sm font-bold outline-none" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Harga (Rp)</label>
-                    <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-gray-50 border p-3 rounded-md outline-none focus:border-[#ee4d2d]" />
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Harga Jual (Rp)</label>
+                    <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-gray-50 border rounded-xl px-6 py-4 text-sm font-bold outline-none" />
                   </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Kategori</label>
-                    <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-gray-50 border p-3 rounded-md outline-none focus:border-[#ee4d2d]">
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Kategori</label>
+                    <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-gray-50 border rounded-xl px-6 py-4 text-sm font-bold outline-none">
                        <option>Fashion</option>
                        <option>Wellness</option>
-                       <option>Home</option>
+                       <option>Home Decor</option>
                        <option>Art</option>
                     </select>
                   </div>
-                  <div className="col-span-2 space-y-1">
-                    <label className="text-[10px] font-bold text-gray-400 uppercase">Deskripsi</label>
-                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-gray-50 border p-3 rounded-md h-24 outline-none focus:border-[#ee4d2d] resize-none"></textarea>
+                  <div className="col-span-2 space-y-2">
+                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Deskripsi Detail</label>
+                    <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-gray-50 border rounded-xl px-6 py-4 text-xs font-medium h-32 outline-none resize-none"></textarea>
                   </div>
                </div>
 
-               <div className="flex gap-3 mt-8">
-                  <button onClick={() => setIsModalOpen(false)} className="flex-1 py-3 bg-gray-100 rounded-md font-bold text-gray-500">Batal</button>
-                  <button onClick={handleSaveLocal} className="flex-[2] py-3 bg-[#ee4d2d] text-white rounded-md font-bold shadow-lg shadow-orange-200">Simpan Inventori</button>
+               <div className="flex gap-4 mt-12">
+                  <button onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-gray-100 rounded-xl text-xs font-bold text-gray-400 uppercase">Batal</button>
+                  <button onClick={handleSaveLocal} className="flex-[2] py-5 bg-[#ee4d2d] text-white rounded-xl text-xs font-bold uppercase tracking-widest shadow-xl shadow-orange-100">Simpan Lokal</button>
                </div>
             </div>
           </div>

@@ -1,6 +1,6 @@
 {
-  "name": "StoryBali Store ini bisaa",
-  "description": "A premium Bali-inspired e-commerce platform featuring artisanal crafts, cultural stories, and AI-powered product discovery.",
+  "name": "StoryBali Store Pro",
+  "description": "Platform e-commerce premium warisan budaya Bali dengan sinkronisasi Cloud real-time.",
   "requestFramePermissions": [
     "camera",
     "microphone"

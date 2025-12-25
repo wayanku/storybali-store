@@ -1,6 +1,19 @@
 
 import { Product } from './types';
 
+/** 
+ * KONFIGURASI GLOBAL 
+ * Masukkan URL Google Script Anda di sini agar semua user otomatis melihat produk yang sama.
+ */
+export const GLOBAL_CONFIG = {
+  // Masukkan URL Web App Google Script Anda di sini
+  MASTER_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyOlXuKnI7GMry31xegxRZdPvvWw7X4QdGvcZl_3Pn6_ikdNE4zIUqCMAGNQ94CDx5ljA/exec', 
+  // Masukkan API Key ImgBB Anda di sini
+  MASTER_IMGBB_KEY: '7e6f3ce63649d305ccaceea00c28266d',
+  // Password untuk masuk ke menu Admin
+  ADMIN_PASSWORD: 'bali123' 
+};
+
 export const INITIAL_PRODUCTS: Product[] = [
   {
     id: '1',
