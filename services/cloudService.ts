@@ -31,7 +31,7 @@ export const getStoreData = async (scriptUrl: string): Promise<Product[] | null>
           parsedImages = rawImages;
         } else if (typeof rawImages === 'string' && rawImages.trim() !== '') {
           const trimmed = rawImages.trim();
-          // Jika formatnya JSON array: ["url1"]
+          // Jika formatnya JSON array: ["url1","url2"]
           if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
             parsedImages = JSON.parse(trimmed);
           } else if (trimmed.includes(',')) {
@@ -47,7 +47,7 @@ export const getStoreData = async (scriptUrl: string): Promise<Product[] | null>
         parsedImages = [];
       }
 
-      // Pastikan hanya link http/https yang masuk dan buang string kosong
+      // Filter link valid
       parsedImages = parsedImages.filter(img => typeof img === 'string' && img.startsWith('http'));
 
       if (parsedImages.length === 0) {
@@ -59,7 +59,7 @@ export const getStoreData = async (scriptUrl: string): Promise<Product[] | null>
         id: String(p.id || Date.now()),
         name: String(p.name || 'Produk Tanpa Nama'),
         price: Number(p.price || 0),
-        images: parsedImages, // Sekarang dijamin berupa array of strings
+        images: parsedImages,
         category: String(p.category || 'Umum'),
         description: String(p.description || ''),
         story: String(p.story || ''),
@@ -80,25 +80,30 @@ export const updateStoreData = async (scriptUrl: string, products: Product[]): P
   if (!scriptUrl) return false;
 
   try {
-    // Pastikan images di-stringify agar muat di satu sel Sheets
+    // FORMAT BARU: Gunakan pemisah koma (CSV) daripada JSON string agar aman di Google Sheets
     const payload = products.map(p => {
-      // Debug log per produk
-      console.log(`📦 Memproses data gambar untuk: ${p.name}`, p.images);
+      const imagesString = Array.isArray(p.images) ? p.images.join(',') : p.images;
+      console.log(`📦 Menyiapkan link gambar untuk ${p.name}:`, imagesString);
       return {
         ...p,
-        images: Array.isArray(p.images) ? JSON.stringify(p.images) : p.images
+        images: imagesString
       };
     });
 
-    const response = await fetch(scriptUrl, {
+    // Gunakan mode no-cors dengan Content-Type text/plain 
+    // agar permintaan diklasifikasikan sebagai 'simple request' dan menghindari kegagalan preflight CORS.
+    await fetch(scriptUrl, {
       method: 'POST',
       mode: 'no-cors',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'text/plain', 
       },
       body: JSON.stringify({ products: payload }),
     });
 
+    // Karena mode no-cors, kita tidak bisa membaca body respon, 
+    // tapi kita asumsikan berhasil jika tidak ada error lemparan.
+    console.log("✅ Permintaan sinkronisasi telah dikirim ke Google Sheets.");
     return true;
   } catch (error) {
     console.error('Update Cloud Data Error:', error);
@@ -116,17 +121,14 @@ export const uploadImageToImgBB = async (file: File, apiKey: string): Promise<st
   formData.append('image', file);
 
   try {
-    console.log("☁️ Mengunggah file ke ImgBB...");
     const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
       method: 'POST',
       body: formData,
     });
     const result = await response.json();
     if (result.success && result.data && result.data.url) {
-      console.log("✅ Berhasil Upload! URL:", result.data.url);
       return result.data.url;
     }
-    console.error("❌ ImgBB Fail:", result);
     return null;
   } catch (error) {
     console.error('ImgBB Error:', error);
