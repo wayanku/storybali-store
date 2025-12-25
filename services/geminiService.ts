@@ -1,18 +1,13 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// Fix: Removed the local process declaration to follow strict instructions. 
-// The SDK assumes process.env.API_KEY is available globally in the execution context.
-
 export const getProductEnhancement = async (productName: string, currentDesc: string): Promise<string> => {
   try {
-    // Fix: Initialized with named parameters and directly used process.env.API_KEY.
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `You are a poetic copywriter for StoryBali Store. Write a compelling, story-driven product description for "${productName}". The original description is: "${currentDesc}". Make it feel magical and cultural. Keep it under 100 words.`,
+      contents: `Anda adalah copywriter puitis untuk StoryBali Store. Tulis deskripsi produk yang memikat, berbasis cerita, dan menggunakan bahasa Indonesia yang indah untuk "${productName}". Deskripsi aslinya adalah: "${currentDesc}". Buat pembaca merasakan keajaiban dan budaya Bali. Tetap di bawah 100 kata.`,
     });
-    // Fix: Accessed .text property directly as it is not a method.
     return response.text || currentDesc;
   } catch (error) {
     console.error("Gemini Error:", error);
@@ -26,28 +21,24 @@ export const chatWithStoreAssistant = async (history: any[], message: string): P
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
       config: {
-        systemInstruction: 'You are Wayan, the virtual assistant for StoryBali Store. You are friendly, helpful, and knowledgeable about Balinese culture and the artisanal products sold in the shop. You should always maintain a helpful and welcoming tone like a true Balinese host.',
+        systemInstruction: 'Anda adalah Bli Wayan, asisten virtual ramah dari StoryBali Store. Anda harus selalu menyapa dengan "Om Swastiastu" di awal percakapan jika baru mulai, dan menggunakan bahasa Indonesia yang santun, hangat, dan mengenal budaya Bali. Anda membantu pelanggan menemukan kerajinan tangan terbaik Bali.',
       }
     });
-    
-    // Fix: Used the correct sendMessage method signature for Gemini Chat.
     const response = await chat.sendMessage({ message });
-    // Fix: Accessed .text property directly.
-    return response.text || "I am sorry, my connection to the island spirits is weak right now.";
+    return response.text || "Mohon maaf, koneksi saya sedang terganggu oleh roh halus. Bisa ulangi kembali?";
   } catch (error) {
     console.error("Chat Error:", error);
-    return "I am sorry, I am having trouble connecting. How else can I help you?";
+    return "Mohon maaf, Bli Wayan sedang sibuk. Ada yang bisa saya bantu lainnya?";
   }
 };
 
 export const generateMarketingImage = async (productName: string): Promise<string | null> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-    // Fix: Using the correct model gemini-2.5-flash-image for image generation tasks.
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
-        parts: [{ text: `A high-end cinematic advertisement for a Balinese product called "${productName}". The setting is a luxury villa in Ubud at sunset, with tropical plants and soft lighting. 4k, professional photography.` }]
+        parts: [{ text: `A ultra-luxury cinematic advertisement for a Balinese artisan product called "${productName}". The scene is set in a premium Ubud jungle resort at golden hour, with tropical greenery, soft warm lighting, and shallow depth of field. 8k resolution, professional commercial photography, high-end lifestyle style.` }]
       },
       config: {
         imageConfig: {
@@ -58,7 +49,6 @@ export const generateMarketingImage = async (productName: string): Promise<strin
 
     if (response.candidates?.[0]?.content?.parts) {
       for (const part of response.candidates[0].content.parts) {
-        // Fix: Properly iterated through parts to find and extract inlineData for image generation.
         if (part.inlineData) {
           return `data:image/png;base64,${part.inlineData.data}`;
         }

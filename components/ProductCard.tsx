@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Product } from '../types';
-import { Star, ShoppingCart } from 'lucide-react';
+import { Star, ShoppingCart, Tag } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -9,55 +9,60 @@ interface ProductCardProps {
   onViewDetail: (p: Product) => void;
 }
 
+const formatRupiah = (amount: number) => {
+  return new Intl.NumberFormat('id-ID', {
+    style: 'currency',
+    currency: 'IDR',
+    minimumFractionDigits: 0
+  }).format(amount);
+};
+
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onViewDetail }) => {
   return (
     <div 
-      className="bg-white rounded-md overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-stone-100 cursor-pointer flex flex-col h-full"
+      className="bg-white rounded-2xl overflow-hidden hover:shadow-[0_20px_50px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all duration-500 border border-stone-100 cursor-pointer flex flex-col h-full group"
       onClick={() => onViewDetail(product)}
     >
-      <div className="relative aspect-square bg-stone-50 overflow-hidden">
+      <div className="relative aspect-[4/5] bg-stone-50 overflow-hidden">
         <img 
           src={product.image} 
           alt={product.name}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
         />
         {product.discountTag && (
-          <div className="absolute top-0 right-0 bg-yellow-400 text-orange-700 font-bold text-[10px] px-2 py-1 rounded-bl-lg shadow-sm">
-            {product.discountTag}
+          <div className="absolute top-4 left-4 bg-orange-600 text-white font-black text-[10px] px-3 py-1.5 rounded-full shadow-lg flex items-center gap-1">
+            <Tag size={10} /> {product.discountTag}
           </div>
         )}
-        <div className="absolute bottom-2 left-2 flex gap-1">
-           <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase">MALL</span>
-        </div>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
       </div>
       
-      <div className="p-3 flex flex-col flex-grow">
-        <h3 className="text-[13px] leading-tight text-stone-800 line-clamp-2 mb-2 group-hover:text-orange-500">
+      <div className="p-5 flex flex-col flex-grow">
+        <div className="flex justify-between items-start mb-2">
+           <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">{product.category}</span>
+           <div className="flex items-center gap-1 text-yellow-500">
+              <Star size={10} fill="currentColor" />
+              <span className="text-[10px] font-bold text-stone-600">{product.rating}</span>
+           </div>
+        </div>
+        
+        <h3 className="text-sm font-bold text-stone-800 line-clamp-2 mb-3 group-hover:text-emerald-700 transition-colors">
           {product.name}
         </h3>
         
-        <div className="mt-auto">
-          <div className="flex items-center gap-1 mb-1">
-             <div className="flex text-yellow-400">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={10} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} />
-                ))}
-             </div>
-             <span className="text-[10px] text-stone-400">| {product.soldCount > 1000 ? `${(product.soldCount/1000).toFixed(1)}k` : product.soldCount} Terjual</span>
-          </div>
-
-          <div className="flex items-baseline gap-1.5 flex-wrap">
-            <span className="text-orange-600 font-bold text-lg">${product.price}</span>
+        <div className="mt-auto space-y-3">
+          <div className="flex flex-col">
             {product.originalPrice && (
-              <span className="text-stone-400 line-through text-[11px]">${product.originalPrice}</span>
+              <span className="text-stone-400 line-through text-[10px]">{formatRupiah(product.originalPrice)}</span>
             )}
+            <span className="text-emerald-800 font-black text-lg">{formatRupiah(product.price)}</span>
           </div>
           
           <button 
             onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
-            className="w-full mt-3 bg-white border border-orange-500 text-orange-500 hover:bg-orange-50 py-1.5 rounded text-[11px] font-bold flex items-center justify-center gap-2 transition-colors"
+            className="w-full bg-stone-900 text-white group-hover:bg-emerald-800 py-3 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition-all shadow-md active:scale-95"
           >
-            <ShoppingCart size={14} /> Tambahkan
+            <ShoppingCart size={14} /> TAMBAHKAN
           </button>
         </div>
       </div>
