@@ -1,13 +1,18 @@
 
-import React, { useState, useEffect } from 'react';
-import { Product, CategoryConfig, Order, FinanceRecord, OrderStatus } from '../types';
+import React, { useState, useRef, useEffect } from 'react';
+import { Product, CategoryConfig } from '../types';
 import { 
-  RefreshCw, Plus, Edit, Trash2, Package, Search, BarChart3, 
-  ClipboardList, TrendingUp, TrendingDown, DollarSign, ArrowUpRight, ArrowDownRight,
-  Wifi, ShieldCheck, Lock, Eye, EyeOff, Layout, Grid
+  Globe, Loader2, RefreshCw, 
+  Save, Plus, X, Edit, Trash2,
+  Image as ImageIcon, Package, 
+  Settings, Key, Search,
+  CheckCircle, Sparkles, ArrowRight, BarChart3,
+  Layout, Wifi, Eye, EyeOff, Grid
 } from 'lucide-react';
-import { updateStoreData } from '../services/cloudService';
+import { getStoreData, updateStoreData, uploadImageToImgBB } from '../services/cloudService';
+import { getProductEnhancement } from '../services/geminiService';
 import { GLOBAL_CONFIG } from '../constants';
+import { renderCategoryIcon } from '../App';
 
 interface AdminProductManagerProps {
   products: Product[];
@@ -16,187 +21,277 @@ interface AdminProductManagerProps {
   onUpdateBanners: (urls: string[]) => void;
   categories: CategoryConfig[];
   onUpdateCategories: (cats: CategoryConfig[]) => void;
-  orders: Order[];
-  onUpdateOrders: (orders: Order[]) => void;
-  finances: FinanceRecord[];
-  onUpdateFinances: (fins: FinanceRecord[]) => void;
 }
 
 const AdminProductManager: React.FC<AdminProductManagerProps> = ({ 
-  products, onUpdateProducts, bannerUrls, onUpdateBanners, categories, onUpdateCategories,
-  orders, onUpdateOrders, finances, onUpdateFinances
+  products, onUpdateProducts, bannerUrls, onUpdateBanners, categories, onUpdateCategories 
 }) => {
-  const [activeTab, setActiveTab] = useState<'inventory' | 'orders' | 'finance' | 'system'>('inventory');
+  const [scriptUrl, setScriptUrl] = useState(localStorage.getItem('storybali_script_url') || GLOBAL_CONFIG.MASTER_SCRIPT_URL);
+  const [imgbbKey, setImgbbKey] = useState(localStorage.getItem('storybali_imgbb_key') || GLOBAL_CONFIG.MASTER_IMGBB_KEY);
+  
+  const [isSyncing, setIsSyncing] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
-  const [newExpense, setNewExpense] = useState({ amount: 0, note: '' });
-  const [isAdminAuth, setIsAdminAuth] = useState(false);
-  const [passInput, setPassInput] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [activeTab, setActiveTab] = useState<'inventory' | 'system'>('inventory');
+  const [searchQuery, setSearchQuery] = useState('');
 
-  const handlePushAll = async (targetOrders = orders, targetFinance = finances) => {
-    const scriptUrl = localStorage.getItem('storybali_script_url') || GLOBAL_CONFIG.MASTER_SCRIPT_URL;
+  const [localProducts, setLocalProducts] = useState<Product[]>(products);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [formData, setFormData] = useState<Partial<Product>>({ images: [] });
+  
+  // Category Form State
+  const [newCatName, setNewCatName] = useState('');
+  const [newCatIcon, setNewCatIcon] = useState('Grid');
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const multiBannerInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setLocalProducts(products);
+  }, [products]);
+
+  const handleFetch = async () => {
+    if (!scriptUrl) return alert('Atur URL Google Script di menu Settings!');
+    setIsSyncing(true);
+    const data = await getStoreData(scriptUrl);
+    setIsSyncing(false);
+    if (data) {
+      const actualProducts = data.filter(p => !['SETTINGS_BANNER', 'SETTINGS_CATEGORIES'].includes(p.id));
+      setLocalProducts(actualProducts);
+      onUpdateProducts(actualProducts);
+      
+      const catSetting = data.find(p => p.id === 'SETTINGS_CATEGORIES');
+      if (catSetting && catSetting.description) {
+        onUpdateCategories(JSON.parse(catSetting.description));
+      }
+    }
+  };
+
+  const handlePushAll = async (targetProducts = localProducts, targetBanners = bannerUrls, targetCats = categories) => {
+    if (!scriptUrl) return alert('Atur URL!');
     setIsUpdating(true);
     
-    const systemRows = [
-      { id: 'SETTINGS_BANNER', name: 'Banners', description: JSON.stringify(bannerUrls) },
-      { id: 'SETTINGS_CATEGORIES', name: 'Categories', description: JSON.stringify(categories) },
-      { id: 'SETTINGS_ORDERS', name: 'Orders', description: JSON.stringify(targetOrders) },
-      { id: 'SETTINGS_FINANCE', name: 'Finance', description: JSON.stringify(targetFinance) }
-    ];
+    const bannerRow: Product = {
+      id: 'SETTINGS_BANNER', name: 'Banners', price: 0, category: 'System', images: [], story: '', rating: 0, soldCount: 0,
+      description: JSON.stringify(targetBanners)
+    };
 
-    const fullPayload = [...systemRows, ...products.map(p => ({...p, image: p.images.join(',')}))] as any;
+    const categoryRow: Product = {
+      id: 'SETTINGS_CATEGORIES', name: 'Categories', price: 0, category: 'System', images: [], story: '', rating: 0, soldCount: 0,
+      description: JSON.stringify(targetCats)
+    };
+
+    const fullPayload = [bannerRow, categoryRow, ...targetProducts];
     const success = await updateStoreData(scriptUrl, fullPayload);
     setIsUpdating(false);
-    if (success) alert('Berhasil Sinkron ke Cloud!');
+    if (success) {
+      onUpdateProducts(targetProducts);
+      onUpdateBanners(targetBanners);
+      onUpdateCategories(targetCats);
+      alert('✅ Cloud Sync Success!');
+    }
   };
 
-  const updateOrderStatus = (id: string, status: OrderStatus) => {
-    const updated = orders.map(o => o.id === id ? { ...o, status } : o);
-    onUpdateOrders(updated);
-    handlePushAll(updated, finances);
-  };
-
-  const addExpense = () => {
-    if (newExpense.amount <= 0 || !newExpense.note) return;
-    const rec: FinanceRecord = { 
-      id: `EXP-${Date.now()}`, 
-      type: 'Expense', 
-      amount: newExpense.amount, 
-      note: newExpense.note, 
-      date: new Date().toISOString() 
+  const handleAddCategory = () => {
+    if (!newCatName) return;
+    const newCat: CategoryConfig = {
+      id: `cat-${Date.now()}`,
+      name: newCatName,
+      icon: newCatIcon,
+      visible: true
     };
-    const updated = [rec, ...finances];
-    onUpdateFinances(updated);
-    handlePushAll(orders, updated);
-    setNewExpense({ amount: 0, note: '' });
+    const updated = [...categories, newCat];
+    onUpdateCategories(updated);
+    setNewCatName('');
+    handlePushAll(localProducts, bannerUrls, updated);
   };
 
-  const totalIncome = finances.filter(f => f.type === 'Income').reduce((s, f) => s + f.amount, 0);
-  const totalExpense = finances.filter(f => f.type === 'Expense').reduce((s, f) => s + f.amount, 0);
+  const toggleCatVisibility = (id: string) => {
+    const updated = categories.map(c => c.id === id ? { ...c, visible: !c.visible } : c);
+    onUpdateCategories(updated);
+    handlePushAll(localProducts, bannerUrls, updated);
+  };
 
-  if (!isAdminAuth) {
-    return (
-      <div className="max-w-md mx-auto py-32 px-4">
-        <div className="bg-white p-12 rounded-[3rem] shadow-2xl space-y-8 border border-stone-100 text-center">
-          <div className="w-20 h-20 bg-stone-50 text-[#ee4d2d] rounded-3xl flex items-center justify-center mx-auto"><Lock size={32}/></div>
-          <div className="space-y-4">
-             <h2 className="text-xl font-bold">Admin Login</h2>
-             <input 
-               type="password" 
-               placeholder="Enter Password" 
-               value={passInput} 
-               onChange={e => setPassInput(e.target.value)} 
-               className="w-full bg-stone-50 p-5 rounded-2xl outline-none text-center font-black tracking-widest border border-stone-100" 
-             />
-             <button 
-               onClick={() => passInput === GLOBAL_CONFIG.ADMIN_PASSWORD ? setIsAdminAuth(true) : alert('Salah!')} 
-               className="w-full bg-[#ee4d2d] text-white py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl"
-             >
-               Unlock Seller Center
-             </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const deleteCategory = (id: string) => {
+    if (!confirm('Hapus kategori? Produk dengan kategori ini tidak akan terhapus.')) return;
+    const updated = categories.filter(c => c.id !== id);
+    onUpdateCategories(updated);
+    handlePushAll(localProducts, bannerUrls, updated);
+  };
+
+  const handleSaveLocal = async () => {
+    if (!formData.name || !formData.price) return alert('Nama dan Harga wajib!');
+    const productToSave = { ...formData, images: (formData.images || []).filter(img => img.startsWith('http')) };
+    let newList: Product[];
+    if (editingProduct) {
+      newList = localProducts.map(p => p.id === editingProduct.id ? { ...p, ...productToSave } as Product : p);
+    } else {
+      newList = [{...productToSave, id: `P-${Date.now()}`} as Product, ...localProducts];
+    }
+    setLocalProducts(newList);
+    setIsModalOpen(false);
+    handlePushAll(newList);
+  };
 
   return (
-    <div className="max-w-7xl mx-auto space-y-8 px-4 md:px-6 py-10 pb-32">
-      <div className="bg-white p-4 rounded-3xl shadow-sm flex flex-wrap gap-2 border border-stone-100">
-        {[
-          { id: 'inventory', label: 'Produk', icon: <Package size={16}/> },
-          { id: 'orders', label: 'Pesanan', icon: <ClipboardList size={16}/> },
-          { id: 'finance', label: 'Keuangan', icon: <BarChart3 size={16}/> },
-          { id: 'system', label: 'Sistem', icon: <Layout size={16}/> }
-        ].map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id as any)} className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === t.id ? 'bg-stone-900 text-white shadow-xl' : 'text-stone-400 hover:bg-stone-50'}`}>
-            {t.icon} {t.label}
-          </button>
-        ))}
+    <div className="max-w-7xl mx-auto space-y-6 pb-32 px-4 md:px-6">
+      <div className="bg-white p-5 rounded-3xl shadow-sm flex flex-col md:flex-row justify-between items-center gap-6 border border-stone-100">
+        <div className="flex items-center gap-4 w-full md:w-auto">
+          <div className="bg-stone-900 text-[#ee4d2d] p-4 rounded-2xl"><Package size={20}/></div>
+          <h1 className="text-xl font-bold text-stone-900">Seller Center</h1>
+        </div>
+        <div className="flex bg-stone-50 p-1.5 rounded-2xl">
+          <button onClick={() => setActiveTab('inventory')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${activeTab === 'inventory' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-300'}`}>Inventory</button>
+          <button onClick={() => setActiveTab('system')} className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest ${activeTab === 'system' ? 'bg-white text-stone-900 shadow-sm' : 'text-stone-300'}`}>System</button>
+        </div>
       </div>
 
-      {activeTab === 'inventory' && (
+      {activeTab === 'inventory' ? (
         <div className="space-y-6">
-           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {products.map(p => (
-                <div key={p.id} className="bg-white p-5 rounded-3xl border border-stone-100 flex items-center gap-5 hover:shadow-md transition-shadow">
-                   <div className="w-16 h-16 rounded-2xl overflow-hidden bg-stone-50"><img src={p.images[0]} className="w-full h-full object-cover"/></div>
-                   <div className="flex-1 min-w-0"><h4 className="text-sm font-bold truncate">{p.name}</h4><p className="text-[#ee4d2d] font-black text-xs mt-1">Rp {p.price.toLocaleString('id-ID')}</p></div>
-                   <button className="text-stone-300 hover:text-stone-900"><Edit size={18}/></button>
-                </div>
-              ))}
-           </div>
-        </div>
-      )}
-
-      {activeTab === 'orders' && (
-        <div className="space-y-4">
-           {orders.length === 0 ? <p className="text-center py-20 text-stone-300 font-bold">Belum ada pesanan.</p> : orders.map(order => (
-             <div key={order.id} className="bg-white p-8 rounded-[2.5rem] border border-stone-100 flex flex-col md:flex-row justify-between gap-8 animate-in slide-in-from-bottom-4">
-                <div className="space-y-3">
-                   <div className="flex items-center gap-3">
-                      <span className="bg-orange-50 text-[#ee4d2d] text-[10px] font-black px-3 py-1 rounded-full uppercase tracking-widest">{order.id}</span>
-                      <span className="text-[10px] text-stone-400 font-bold">{order.createdAt}</span>
-                   </div>
-                   <h4 className="text-lg font-bold">{order.customerName}</h4>
-                   <div className="space-y-1">
-                      {order.items.map((item, idx) => <p key={idx} className="text-xs text-stone-500">• {item.name} (x{item.quantity})</p>)}
-                   </div>
-                   <p className="text-xl font-black text-[#ee4d2d] italic pt-2">Rp {order.total.toLocaleString('id-ID')}</p>
-                </div>
-                <div className="flex items-center">
-                   <select 
-                     value={order.status} 
-                     onChange={(e) => updateOrderStatus(order.id, e.target.value as any)}
-                     className={`px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest outline-none border-2 transition-all ${order.status === 'Selesai' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : 'bg-orange-50 border-orange-100 text-orange-600'}`}
-                   >
-                      {['Pending', 'Diproses', 'Dikemas', 'Dikirim', 'Selesai', 'Dibatalkan'].map(s => <option key={s} value={s}>{s}</option>)}
-                   </select>
-                </div>
+          <div className="bg-white p-4 rounded-3xl border border-stone-100 flex items-center justify-between gap-4">
+             <div className="relative flex-1">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-stone-300" size={14} />
+                <input type="text" placeholder="Cari di gudang..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="w-full bg-stone-50 rounded-2xl pl-12 pr-6 py-3 text-xs outline-none" />
              </div>
-           ))}
+             <div className="flex gap-2">
+                <button onClick={handleFetch} className="p-3 bg-stone-50 text-stone-400 rounded-xl"><RefreshCw size={14} className={isSyncing ? 'animate-spin' : ''}/></button>
+                <button onClick={() => { setEditingProduct(null); setFormData({ name: '', price: 0, category: categories[0]?.name || 'Fashion', images: [], description: '', story: '' }); setIsModalOpen(true); }} className="bg-[#ee4d2d] text-white px-6 py-3 rounded-xl text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                   <Plus size={16}/> New
+                </button>
+             </div>
+          </div>
+          <div className="space-y-3">
+             {localProducts.filter(p => p.name.toLowerCase().includes(searchQuery.toLowerCase())).map(p => (
+               <div key={p.id} className="bg-white p-4 rounded-2xl border border-stone-100 flex items-center gap-4">
+                  <div className="w-16 h-16 rounded-xl overflow-hidden bg-stone-50"><img src={p.images?.[0]} className="w-full h-full object-cover" /></div>
+                  <div className="flex-1 min-w-0"><h4 className="text-sm font-bold truncate">{p.name}</h4><p className="text-[#ee4d2d] font-black text-xs">Rp {p.price.toLocaleString('id-ID')}</p></div>
+                  <div className="flex gap-2">
+                     <button onClick={() => { setEditingProduct(p); setFormData({ ...p }); setIsModalOpen(true); }} className="p-3 text-stone-400 hover:text-[#ee4d2d]"><Edit size={16} /></button>
+                     <button onClick={() => { if(confirm('Hapus?')) { const n = localProducts.filter(x => x.id !== p.id); setLocalProducts(n); handlePushAll(n); }}} className="p-3 text-stone-200 hover:text-red-500"><Trash2 size={16} /></button>
+                  </div>
+               </div>
+             ))}
+          </div>
         </div>
-      )}
-
-      {activeTab === 'finance' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-           <div className="lg:col-span-1 space-y-6">
-              <div className="bg-emerald-500 p-10 rounded-[3rem] text-white shadow-2xl shadow-emerald-200">
-                 <div className="flex justify-between items-start mb-6"><TrendingUp size={40}/><div className="bg-white/20 p-2 rounded-xl text-[8px] font-black tracking-widest">GROSS INCOME</div></div>
-                 <h2 className="text-4xl font-black italic">Rp {totalIncome.toLocaleString('id-ID')}</h2>
+      ) : (
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+           {/* Dynamic Category Manager */}
+           <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 space-y-8">
+              <div className="flex items-center justify-between">
+                 <h3 className="text-xl font-bold">Category Management</h3>
+                 <Grid className="text-stone-200" size={32} />
               </div>
-              <div className="bg-rose-500 p-10 rounded-[3rem] text-white shadow-2xl shadow-rose-200">
-                 <div className="flex justify-between items-start mb-6"><TrendingDown size={40}/><div className="bg-white/20 p-2 rounded-xl text-[8px] font-black tracking-widest">OPERATIONAL</div></div>
-                 <h2 className="text-4xl font-black italic">Rp {totalExpense.toLocaleString('id-ID')}</h2>
+              <div className="space-y-4 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+                 {categories.map(cat => (
+                    <div key={cat.id} className="flex items-center justify-between p-4 bg-stone-50 rounded-2xl border border-stone-100 group">
+                       <div className="flex items-center gap-4">
+                          <div className={`p-2 rounded-lg ${cat.visible ? 'bg-white text-stone-900' : 'bg-stone-200 text-stone-400'}`}>
+                             {renderCategoryIcon(cat.icon, 18)}
+                          </div>
+                          <div>
+                             <p className={`text-sm font-bold ${!cat.visible && 'text-stone-400'}`}>{cat.name}</p>
+                             <p className="text-[9px] font-black text-stone-300 uppercase tracking-widest">{cat.icon}</p>
+                          </div>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <button onClick={() => toggleCatVisibility(cat.id)} className={`p-2 rounded-lg transition-all ${cat.visible ? 'text-emerald-500 hover:bg-emerald-50' : 'text-stone-300 hover:bg-stone-100'}`}>
+                             {cat.visible ? <Eye size={18} /> : <EyeOff size={18} />}
+                          </button>
+                          <button onClick={() => deleteCategory(cat.id)} className="p-2 text-stone-200 hover:text-red-500 hover:bg-red-50 rounded-lg opacity-0 group-hover:opacity-100 transition-all">
+                             <Trash2 size={18} />
+                          </button>
+                       </div>
+                    </div>
+                 ))}
               </div>
-              <div className="bg-stone-900 p-10 rounded-[3.5rem] text-white space-y-6 shadow-2xl">
-                 <h3 className="text-xl font-bold">Catat Pengeluaran</h3>
-                 <div className="space-y-4">
-                    <input type="number" placeholder="Jumlah (IDR)" value={newExpense.amount} onChange={e => setNewExpense({...newExpense, amount: Number(e.target.value)})} className="w-full bg-white/10 p-5 rounded-2xl outline-none border border-white/10 font-bold" />
-                    <input type="text" placeholder="Keterangan (Contoh: Biaya Iklan)" value={newExpense.note} onChange={e => setNewExpense({...newExpense, note: e.target.value})} className="w-full bg-white/10 p-5 rounded-2xl outline-none border border-white/10 text-sm" />
-                    <button onClick={addExpense} className="w-full bg-[#ee4d2d] py-5 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:scale-105 transition-transform">Submit Record</button>
+              <div className="pt-6 border-t border-stone-50 space-y-4">
+                 <p className="text-[10px] font-black uppercase text-stone-400 tracking-widest">Add New Category</p>
+                 <div className="flex gap-3">
+                    <input type="text" placeholder="Category Name" value={newCatName} onChange={e => setNewCatName(e.target.value)} className="flex-1 bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-sm font-bold outline-none" />
+                    <select value={newCatIcon} onChange={e => setNewCatIcon(e.target.value)} className="bg-stone-50 border border-stone-100 rounded-xl px-4 py-3 text-[10px] font-black uppercase outline-none">
+                       {['Smartphone','Laptop','User','Zap','Watch','Headphones','Home','Utensils','Gamepad','Heart','Camera','Coffee','Gift'].map(ic => <option key={ic}>{ic}</option>)}
+                    </select>
+                    <button onClick={handleAddCategory} className="bg-stone-900 text-white p-3 rounded-xl hover:bg-[#ee4d2d] transition-all"><Plus size={20}/></button>
                  </div>
               </div>
            </div>
-           <div className="lg:col-span-2 bg-white p-10 rounded-[3.5rem] border border-stone-100">
-              <h3 className="text-xl font-bold mb-8">Riwayat Keuangan Global</h3>
-              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 no-scrollbar">
-                 {finances.length === 0 ? <p className="text-stone-300">Belum ada transaksi.</p> : finances.map(f => (
-                   <div key={f.id} className="flex items-center justify-between p-5 bg-stone-50 rounded-3xl border border-stone-100">
-                      <div className="flex items-center gap-5">
-                         <div className={`p-4 rounded-2xl ${f.type === 'Income' ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
-                            {f.type === 'Income' ? <ArrowUpRight size={24}/> : <ArrowDownRight size={24}/>}
-                         </div>
-                         <div><p className="font-bold text-stone-900">{f.note}</p><p className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{new Date(f.date).toLocaleDateString()}</p></div>
-                      </div>
-                      <p className={`font-black text-lg italic ${f.type === 'Income' ? 'text-emerald-600' : 'text-rose-600'}`}>{f.type === 'Income' ? '+' : '-'} Rp {f.amount.toLocaleString('id-ID')}</p>
-                   </div>
-                 ))}
+
+           <div className="space-y-8">
+              <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 space-y-6">
+                 <h3 className="text-xl font-bold">Banner Management</h3>
+                 <div className="flex overflow-x-auto gap-4 no-scrollbar">
+                    {bannerUrls.map((url, i) => (
+                       <div key={i} className="relative min-w-[120px] aspect-video rounded-xl overflow-hidden group">
+                          <img src={url} className="w-full h-full object-cover" />
+                          <button onClick={() => { const n = bannerUrls.filter((_, idx) => idx !== i); handlePushAll(localProducts, n); }} className="absolute inset-0 bg-red-600/60 text-white flex items-center justify-center opacity-0 group-hover:opacity-100"><Trash2 size={16}/></button>
+                       </div>
+                    ))}
+                    <button onClick={() => multiBannerInputRef.current?.click()} className="min-w-[120px] aspect-video border-2 border-dashed border-stone-200 rounded-xl flex items-center justify-center text-stone-300 hover:text-[#ee4d2d]"><Plus/></button>
+                 </div>
+                 <input type="file" multiple ref={multiBannerInputRef} className="hidden" onChange={async (e) => {
+                    const files = e.target.files; if(!files || !imgbbKey) return;
+                    setIsUploading(true);
+                    const cur = [...bannerUrls];
+                    for(let i=0; i<files.length; i++){
+                       const u = await uploadImageToImgBB(files[i], imgbbKey);
+                       if(u) cur.push(u);
+                    }
+                    handlePushAll(localProducts, cur);
+                    setIsUploading(false);
+                 }} />
+              </div>
+              <div className="bg-white p-8 rounded-[2.5rem] border border-stone-100 space-y-4">
+                 <h3 className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Global Sync</h3>
+                 <button onClick={() => handlePushAll()} className="w-full py-4 bg-stone-900 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-3">
+                    {isUpdating ? <Loader2 className="animate-spin" size={16}/> : <Wifi size={16}/>} Force Cloud Sync
+                 </button>
               </div>
            </div>
         </div>
       )}
 
-      {isUpdating && <div className="fixed inset-0 bg-stone-950/20 backdrop-blur-sm z-[200] flex items-center justify-center"><div className="bg-white p-8 rounded-3xl flex items-center gap-4"><Wifi className="animate-pulse text-[#ee4d2d]"/> <span className="text-[10px] font-black uppercase tracking-widest">Syncing to Cloud...</span></div></div>}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-[100] bg-stone-950/80 flex items-center justify-center">
+          <div className="bg-white w-full max-w-4xl rounded-[2.5rem] max-h-[90vh] overflow-y-auto p-12 relative animate-in zoom-in-95">
+             <button onClick={() => setIsModalOpen(false)} className="absolute top-8 right-8 text-stone-300 hover:text-stone-900"><X size={24}/></button>
+             <h3 className="text-3xl font-bold mb-10">{editingProduct ? 'Edit Product' : 'Add Product'}</h3>
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-6">
+                   <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Product Name</label><input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-stone-50 border border-stone-100 rounded-xl p-5 text-sm font-bold" /></div>
+                   <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Price (IDR)</label><input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-stone-50 border border-stone-100 rounded-xl p-5 text-sm font-bold text-[#ee4d2d]" /></div>
+                   <div className="space-y-2">
+                      <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Category</label>
+                      <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-stone-50 border border-stone-100 rounded-xl p-5 text-sm font-bold outline-none">
+                         {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                      </select>
+                   </div>
+                </div>
+                <div className="space-y-6">
+                   <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Images</label>
+                      <div className="flex flex-wrap gap-2">
+                         {formData.images?.map((img, i) => <div key={i} className="w-12 h-12 rounded-lg overflow-hidden border border-stone-100"><img src={img} className="w-full h-full object-cover"/></div>)}
+                         <button onClick={() => fileInputRef.current?.click()} className="w-12 h-12 rounded-lg border-2 border-dashed border-stone-200 flex items-center justify-center text-stone-300"><Plus/></button>
+                      </div>
+                      <input type="file" multiple ref={fileInputRef} className="hidden" onChange={async (e) => {
+                         const files = e.target.files; if(!files || !imgbbKey) return;
+                         setIsUploading(true);
+                         const cur = [...(formData.images || [])];
+                         for(let i=0; i<files.length; i++){
+                            const u = await uploadImageToImgBB(files[i], imgbbKey); if(u) cur.push(u);
+                         }
+                         setFormData({...formData, images: cur});
+                         setIsUploading(false);
+                      }} />
+                   </div>
+                   <div className="space-y-2"><label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Description</label><textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-stone-50 border border-stone-100 rounded-xl p-5 text-sm h-32 resize-none"></textarea></div>
+                </div>
+             </div>
+             <button onClick={handleSaveLocal} className="w-full mt-10 bg-stone-900 text-white py-5 rounded-2xl font-black text-[11px] uppercase tracking-widest shadow-2xl">Save Product</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
