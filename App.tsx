@@ -39,6 +39,7 @@ const App: React.FC = () => {
       const scriptUrl = GLOBAL_CONFIG.MASTER_SCRIPT_URL || localStorage.getItem('storybali_script_url');
       if (scriptUrl) {
         const cloudData = await getStoreData(scriptUrl);
+        // Jika cloud data ada tapi kosong (length 0), gunakan initial products
         if (cloudData && cloudData.length > 0) {
           setProducts(cloudData);
         } else {
@@ -148,9 +149,11 @@ const App: React.FC = () => {
            <button onClick={() => setRoute(AppRoute.CATALOG)} className="text-[#ee4d2d] text-xs font-bold uppercase tracking-widest hover:underline">Lihat Semua</button>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-5">
-           {products.slice(0, 12).map(product => (
+           {products.length > 0 ? products.slice(0, 12).map(product => (
              <ProductCard key={product.id} product={product} onAddToCart={addToCart} onViewDetail={handleViewDetail} />
-           ))}
+           )) : (
+             <div className="col-span-full py-20 text-center text-stone-400">Memuat produk...</div>
+           )}
         </div>
       </section>
     </div>

@@ -81,22 +81,24 @@ export const updateStoreData = async (scriptUrl: string, products: Product[]): P
 
   try {
     // Pastikan images di-stringify agar muat di satu sel Sheets
-    const payload = products.map(p => ({
-      ...p,
-      images: Array.isArray(p.images) ? JSON.stringify(p.images) : p.images
-    }));
+    const payload = products.map(p => {
+      // Debug log per produk
+      console.log(`📦 Memproses data gambar untuk: ${p.name}`, p.images);
+      return {
+        ...p,
+        images: Array.isArray(p.images) ? JSON.stringify(p.images) : p.images
+      };
+    });
 
     const response = await fetch(scriptUrl, {
       method: 'POST',
-      mode: 'no-cors', // Penting untuk Apps Script agar tidak kena CORS preflight
+      mode: 'no-cors',
       headers: {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ products: payload }),
     });
 
-    // Karena no-cors, kita tidak bisa baca response body secara detail, 
-    // tapi kita asumsikan sukses jika tidak ada error throw.
     return true;
   } catch (error) {
     console.error('Update Cloud Data Error:', error);
@@ -114,14 +116,17 @@ export const uploadImageToImgBB = async (file: File, apiKey: string): Promise<st
   formData.append('image', file);
 
   try {
+    console.log("☁️ Mengunggah file ke ImgBB...");
     const response = await fetch(`https://api.imgbb.com/1/upload?key=${apiKey}`, {
       method: 'POST',
       body: formData,
     });
     const result = await response.json();
     if (result.success && result.data && result.data.url) {
-      return result.data.url; // Ini adalah direct link
+      console.log("✅ Berhasil Upload! URL:", result.data.url);
+      return result.data.url;
     }
+    console.error("❌ ImgBB Fail:", result);
     return null;
   } catch (error) {
     console.error('ImgBB Error:', error);

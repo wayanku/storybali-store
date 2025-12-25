@@ -7,7 +7,7 @@ import {
   Image as ImageIcon, Package, 
   Settings, Key, Search, AlertCircle,
   ToggleRight, ToggleLeft, CheckCircle,
-  Sparkles, Wand2
+  Sparkles, Wand2, Copy, Link as LinkIcon
 } from 'lucide-react';
 import { getStoreData, updateStoreData, uploadImageToImgBB } from '../services/cloudService';
 import { getProductEnhancement } from '../services/geminiService';
@@ -34,6 +34,7 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [formData, setFormData] = useState<Partial<Product>>({ images: [] });
+  const [manualImageUrl, setManualImageUrl] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,19 +58,23 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
   const handlePush = async (productsToPush: Product[]) => {
     if (!scriptUrl) return;
     setIsUpdating(true);
+    
+    // Debugging Log: Lihat apa yang dikirim
+    console.log("📤 Mengirim Payload ke Sheets:", productsToPush);
+    
     const success = await updateStoreData(scriptUrl, productsToPush);
     setIsUpdating(false);
     if (success) {
       onUpdateProducts(productsToPush);
-      // Berikan notifikasi karena mode no-cors terkadang tidak memberikan feedback body
-      alert('Permintaan sinkronisasi telah dikirim ke Cloud!');
+      alert('Sinkronisasi Berhasil! Data telah diperbarui di Google Sheets.');
+    } else {
+      alert('Sinkronisasi Gagal. Cek koneksi atau Script URL Anda.');
     }
   };
 
   const handleSaveLocal = async () => {
     if (!formData.name || !formData.price) return alert('Nama dan Harga wajib diisi!');
     
-    // Pastikan images adalah array sebelum disimpan
     const cleanImages = Array.isArray(formData.images) ? formData.images.filter(img => img && img.startsWith('http')) : [];
     const productToSave = { ...formData, images: cleanImages };
 
@@ -87,8 +92,22 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
       handlePush(newList);
     } else {
       onUpdateProducts(newList);
-      alert('Tersimpan di memori lokal. Jangan lupa klik "Push" untuk simpan ke Cloud.');
+      alert('Tersimpan di memori lokal. Klik "Push Cloud" untuk mengirim link gambar ke Google Sheets.');
     }
+  };
+
+  const handleAddManualImage = () => {
+    if (!manualImageUrl || !manualImageUrl.startsWith('http')) return alert('Masukkan URL yang valid (dimulai dengan http)');
+    setFormData({
+      ...formData,
+      images: [...(formData.images || []), manualImageUrl]
+    });
+    setManualImageUrl('');
+  };
+
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text);
+    alert('Link disalin!');
   };
 
   return (
@@ -135,7 +154,7 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
                 <div className="flex items-center justify-between">
                    <div className="space-y-1">
                       <p className="text-sm font-bold text-stone-800">Auto-Sync</p>
-                      <p className="text-[10px] text-gray-400 font-medium">Push otomatis setiap edit</p>
+                      <p className="text-[10px] text-gray-400 font-medium text-xs">Simpan otomatis ke Sheets</p>
                    </div>
                    <button onClick={() => {
                       const newVal = !isAutoSync;
@@ -232,25 +251,52 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
       {/* Editor Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] bg-stone-950/80 backdrop-blur-md flex items-center justify-center p-0 md:p-6 overflow-y-auto">
-          <div className="bg-white w-full max-w-5xl md:rounded-[3rem] min-h-screen md:min-h-0 flex flex-col md:flex-row overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
+          <div className="bg-white w-full max-w-6xl md:rounded-[3rem] min-h-screen md:min-h-0 flex flex-col md:flex-row overflow-hidden shadow-2xl animate-in zoom-in-95 duration-300">
             {/* Gallery Section */}
-            <div className="w-full md:w-96 bg-stone-50 p-8 md:p-12 overflow-y-auto border-r border-gray-100 shrink-0">
-               <div className="flex justify-between items-center mb-8 md:mb-10">
-                  <h3 className="font-black text-[10px] uppercase tracking-widest text-stone-400">Media Gallery</h3>
+            <div className="w-full md:w-96 bg-stone-50 p-6 md:p-8 overflow-y-auto border-r border-gray-100 shrink-0">
+               <div className="flex justify-between items-center mb-6">
+                  <h3 className="font-black text-[10px] uppercase tracking-widest text-stone-400">Media Tracker</h3>
                   <button onClick={() => setIsModalOpen(false)} className="md:hidden"><X /></button>
                </div>
-               <div className="grid grid-cols-2 gap-4">
+               
+               {/* List URL and Preview */}
+               <div className="space-y-4 mb-8">
                   {(formData.images || []).map((img, i) => (
-                    <div key={i} className="relative aspect-square rounded-2xl overflow-hidden shadow-sm group border border-gray-200">
-                       <img src={img} className="w-full h-full object-cover" />
-                       <button onClick={() => setFormData({...formData, images: (formData.images || []).filter((_, idx) => idx !== i)})} className="absolute inset-0 bg-red-600/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity"><Trash2 size={20}/></button>
+                    <div key={i} className="bg-white p-3 rounded-2xl border border-gray-100 space-y-2 group shadow-sm">
+                       <div className="relative aspect-square rounded-xl overflow-hidden border border-gray-50">
+                          <img src={img} className="w-full h-full object-cover" />
+                          <button onClick={() => setFormData({...formData, images: (formData.images || []).filter((_, idx) => idx !== i)})} className="absolute top-2 right-2 p-2 bg-red-600 text-white rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={16}/></button>
+                       </div>
+                       <div className="flex items-center gap-2">
+                          <input readOnly value={img} className="flex-1 text-[8px] text-gray-400 bg-stone-50 border-none rounded-lg p-2 outline-none truncate" />
+                          <button onClick={() => copyToClipboard(img)} className="p-2 text-stone-400 hover:text-[#ee4d2d]"><Copy size={14}/></button>
+                       </div>
                     </div>
                   ))}
-                  <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="aspect-square border-4 border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center text-stone-300 hover:border-[#ee4d2d] hover:text-[#ee4d2d] transition-all bg-white group">
-                     {isUploading ? <Loader2 className="animate-spin text-[#ee4d2d]" /> : <Plus size={32} className="group-hover:scale-110 transition-transform" />}
-                     <span className="text-[9px] font-black uppercase tracking-widest mt-2">{isUploading ? 'Uploading...' : 'Upload Foto'}</span>
-                  </button>
                </div>
+
+               {/* Add Image Actions */}
+               <div className="space-y-4">
+                  <button onClick={() => fileInputRef.current?.click()} disabled={isUploading} className="w-full h-32 border-4 border-dashed border-stone-200 rounded-2xl flex flex-col items-center justify-center text-stone-300 hover:border-[#ee4d2d] hover:text-[#ee4d2d] transition-all bg-white group">
+                     {isUploading ? <Loader2 className="animate-spin text-[#ee4d2d]" /> : <ImageIcon size={32} className="group-hover:scale-110 transition-transform" />}
+                     <span className="text-[9px] font-black uppercase tracking-widest mt-2">{isUploading ? 'Menghubungi ImgBB...' : 'Upload dari Perangkat'}</span>
+                  </button>
+                  
+                  <div className="relative pt-4 border-t border-gray-200">
+                     <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-2 text-center">Atau masukkan link manual</p>
+                     <div className="flex gap-2">
+                        <input 
+                           type="text" 
+                           placeholder="https://link-gambar.com/foto.jpg"
+                           value={manualImageUrl}
+                           onChange={e => setManualImageUrl(e.target.value)}
+                           className="flex-1 bg-white border border-gray-200 rounded-xl p-3 text-[10px] outline-none focus:border-[#ee4d2d]"
+                        />
+                        <button onClick={handleAddManualImage} className="bg-stone-900 text-white p-3 rounded-xl hover:bg-stone-700 transition-colors"><Plus size={16}/></button>
+                     </div>
+                  </div>
+               </div>
+
                <input type="file" multiple className="hidden" ref={fileInputRef} accept="image/*" onChange={async (e) => {
                   const files = e.target.files;
                   if (!files || files.length === 0 || !imgbbKey) {
@@ -262,9 +308,10 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
                   for (let i = 0; i < files.length; i++) {
                      const url = await uploadImageToImgBB(files[i], imgbbKey);
                      if (url) {
+                       console.log("✅ ImgBB Sukses:", url);
                        current.push(url);
                      } else {
-                       alert('Gagal upload salah satu gambar.');
+                       alert('Gagal upload salah satu gambar. Cek API Key ImgBB Anda.');
                      }
                   }
                   setFormData({...formData, images: current});
@@ -274,30 +321,30 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
             </div>
 
             {/* Form Section */}
-            <div className="flex-1 p-8 md:p-16 overflow-y-auto bg-white space-y-12">
-               <div className="hidden md:flex justify-between items-center">
-                  <h3 className="text-3xl font-bold serif text-stone-800 tracking-tight">{editingProduct ? 'Sunting Warisan' : 'Karya Baru'}</h3>
-                  <button onClick={() => setIsModalOpen(false)} className="text-stone-300 hover:text-stone-800 transition-colors"><X size={32}/></button>
+            <div className="flex-1 p-8 md:p-12 overflow-y-auto bg-white space-y-10">
+               <div className="flex justify-between items-center">
+                  <h3 className="text-2xl font-bold serif text-stone-800 tracking-tight">{editingProduct ? 'Edit Kerajinan' : 'Produk Baru'}</h3>
+                  <button onClick={() => setIsModalOpen(false)} className="text-stone-300 hover:text-stone-800 transition-colors"><X size={28}/></button>
                </div>
                
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                  <div className="col-span-1 md:col-span-2 space-y-3">
-                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Nama Produk</label>
-                     <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-stone-50 border border-gray-100 rounded-2xl p-5 text-sm font-bold outline-none focus:ring-4 focus:ring-[#ee4d2d]/5 transition-all" placeholder="Misal: Tas Rotan Klasik Ubud" />
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="col-span-1 md:col-span-2 space-y-2">
+                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Nama Produk</label>
+                     <input type="text" value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} className="w-full bg-stone-50 border border-gray-100 rounded-xl p-4 text-sm font-bold outline-none focus:ring-4 focus:ring-[#ee4d2d]/5" />
                   </div>
-                  <div className="space-y-3">
-                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Harga (Rp)</label>
-                     <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-stone-50 border border-gray-100 rounded-2xl p-5 text-sm font-black outline-none text-[#ee4d2d] focus:ring-4 focus:ring-[#ee4d2d]/5 transition-all" />
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Harga (Rp)</label>
+                     <input type="number" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} className="w-full bg-stone-50 border border-gray-100 rounded-xl p-4 text-sm font-black outline-none text-[#ee4d2d]" />
                   </div>
-                  <div className="space-y-3">
-                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Kategori</label>
-                     <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-stone-50 border border-gray-100 rounded-2xl p-5 text-sm font-bold outline-none appearance-none cursor-pointer focus:ring-4 focus:ring-[#ee4d2d]/5 transition-all">
+                  <div className="space-y-2">
+                     <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Kategori</label>
+                     <select value={formData.category} onChange={e => setFormData({...formData, category: e.target.value})} className="w-full bg-stone-50 border border-gray-100 rounded-xl p-4 text-sm font-bold outline-none appearance-none">
                         <option>Fashion</option><option>Wellness</option><option>Home Decor</option><option>Seni & Lukis</option><option>Aksesoris</option>
                      </select>
                   </div>
-                  <div className="col-span-1 md:col-span-2 space-y-3">
+                  <div className="col-span-1 md:col-span-2 space-y-2">
                      <div className="flex justify-between items-center">
-                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest ml-1">Deskripsi & Cerita</label>
+                        <label className="text-[10px] font-black text-stone-400 uppercase tracking-widest">Deskripsi & Cerita</label>
                         <button 
                           onClick={async () => {
                              if (!formData.name) return alert('Isi Nama Produk untuk panduan AI!');
@@ -306,19 +353,18 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
                              setFormData({...formData, description: desc});
                              setIsEnhancing(false);
                           }}
-                          disabled={isEnhancing}
-                          className="text-[9px] font-black text-[#ee4d2d] uppercase tracking-widest flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-full border border-orange-100 hover:bg-orange-100 transition-all disabled:opacity-50"
+                          className="text-[8px] font-black text-[#ee4d2d] uppercase tracking-widest flex items-center gap-2 bg-orange-50 px-3 py-1.5 rounded-full border border-orange-100"
                         >
-                           {isEnhancing ? <Loader2 size={12} className="animate-spin" /> : <Wand2 size={12} />} AI Copywriter
+                           {isEnhancing ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />} Bli Wayan AI
                         </button>
                      </div>
-                     <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-stone-50 border border-gray-100 rounded-3xl p-6 text-xs h-40 resize-none outline-none leading-relaxed focus:ring-4 focus:ring-[#ee4d2d]/5 transition-all" placeholder="Ceritakan keindahan dan filosofi di balik produk ini..."></textarea>
+                     <textarea value={formData.description} onChange={e => setFormData({...formData, description: e.target.value})} className="w-full bg-stone-50 border border-gray-100 rounded-2xl p-4 text-xs h-32 resize-none outline-none leading-relaxed" placeholder="Ceritakan filosofi produk ini..."></textarea>
                   </div>
                </div>
 
-               <div className="flex gap-4 pt-10 border-t border-gray-100">
-                  <button onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-stone-100 rounded-2xl text-[10px] font-black uppercase tracking-widest text-stone-400 hover:bg-stone-200 transition-all">Batalkan</button>
-                  <button onClick={handleSaveLocal} className="flex-[2] py-5 bg-[#ee4d2d] text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-2xl shadow-orange-100 active:scale-95 transition-all">Simpan ke Inventori</button>
+               <div className="flex gap-3 pt-6">
+                  <button onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-stone-100 rounded-xl text-[10px] font-black uppercase tracking-widest text-stone-400">Tutup</button>
+                  <button onClick={handleSaveLocal} className="flex-[2] py-4 bg-[#ee4d2d] text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-orange-100 active:scale-95 transition-all">Simpan Perubahan</button>
                </div>
             </div>
           </div>
