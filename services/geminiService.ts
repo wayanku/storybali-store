@@ -1,25 +1,30 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
-// Always use the named parameter and direct process.env.API_KEY as per guidelines.
-const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+// Memberitahu TypeScript bahwa process.env akan disediakan oleh environment (Vite/Vercel)
+declare var process: {
+  env: {
+    API_KEY: string;
+  }
+};
 
-export const getProductEnhancement = async (productName: string, currentDesc: string) => {
+export const getProductEnhancement = async (productName: string, currentDesc: string): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: `You are a poetic copywriter for StoryBali Store. Write a compelling, story-driven product description for "${productName}". The original description is: "${currentDesc}". Make it feel magical and cultural. Keep it under 100 words.`,
     });
-    // response.text is a property, not a method.
-    return response.text;
+    return response.text || currentDesc;
   } catch (error) {
     console.error("Gemini Error:", error);
     return currentDesc;
   }
 };
 
-export const chatWithStoreAssistant = async (history: { role: string, parts: { text: string }[] }[], message: string) => {
+export const chatWithStoreAssistant = async (history: any[], message: string): Promise<string> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
       config: {
@@ -27,17 +32,17 @@ export const chatWithStoreAssistant = async (history: { role: string, parts: { t
       }
     });
     
-    // sendMessage returns GenerateContentResponse
     const response = await chat.sendMessage({ message });
-    return response.text;
+    return response.text || "I am sorry, my connection to the island spirits is weak right now.";
   } catch (error) {
     console.error("Chat Error:", error);
-    return "I am sorry, my connection to the island spirits is weak right now. How else can I help you?";
+    return "I am sorry, I am having trouble connecting. How else can I help you?";
   }
 };
 
-export const generateMarketingImage = async (productName: string) => {
+export const generateMarketingImage = async (productName: string): Promise<string | null> => {
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
@@ -45,7 +50,6 @@ export const generateMarketingImage = async (productName: string) => {
       }
     });
 
-    // Iterate through all parts to find the image part as recommended.
     if (response.candidates?.[0]?.content?.parts) {
       for (const part of response.candidates[0].content.parts) {
         if (part.inlineData) {

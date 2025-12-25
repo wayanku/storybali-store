@@ -14,13 +14,23 @@
     h1, h2, h3, .serif {
       font-family: 'Playfair Display', serif;
     }
-    /* Animasi tambahan untuk kelancaran UI */
     .animate-fade-in {
       animation: fadeIn 0.5s ease-out forwards;
     }
     @keyframes fadeIn {
       from { opacity: 0; transform: translateY(10px); }
       to { opacity: 1; transform: translateY(0); }
+    }
+    /* Custom Scrollbar for Luxury Feel */
+    ::-webkit-scrollbar {
+      width: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #f1f1f1;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #065f46;
+      border-radius: 10px;
     }
   </style>
 <script type="importmap">
@@ -40,7 +50,6 @@
 </head>
 <body class="bg-stone-50 text-stone-900">
   <div id="root"></div>
-  <!-- Vite akan mengelola file index.tsx ini menjadi file javascript yang dimengerti browser -->
   <script type="module" src="/index.tsx"></script>
 </body>
 </html>
