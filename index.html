@@ -10,27 +10,19 @@
   <style>
     :root {
       --font-jakarta: 'Plus Jakarta Sans', sans-serif;
-      --font-playfair: 'Playfair Display', serif;
-      --bali-red: #ee4d2d;
-      --ubud-green: #065f46;
+      --shopee-orange: #ee4d2d;
+      --bg-gray: #f5f5f5;
     }
     body {
       font-family: var(--font-jakarta);
-      background-color: #f8f8f7;
-      color: #1c1917;
+      background-color: var(--bg-gray);
+      color: #333;
       -webkit-tap-highlight-color: transparent;
     }
-    h1, h2, h3, .serif {
-      font-family: var(--font-playfair);
-    }
-    .shopee-shadow {
-      box-shadow: 0 1px 1px 0 rgba(0,0,0,.05);
-    }
-    /* Smooth Transitions */
+    /* Shopee-style transitions */
     .transition-custom {
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.2s ease-in-out;
     }
-    /* Hide scrollbar but keep functionality */
     .no-scrollbar::-webkit-scrollbar {
       display: none;
     }
@@ -38,11 +30,17 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
-    /* Mobile optimization */
-    @media (max-width: 768px) {
-      .main-content {
-        padding-bottom: 80px;
-      }
+    input::placeholder {
+      font-size: 0.8rem;
+      opacity: 0.5;
+    }
+    /* Skeleton-like loading look */
+    .loading-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: .5; }
     }
   </style>
 <script type="importmap">
@@ -53,7 +51,6 @@
     "react/": "https://esm.sh/react@^19.2.3/",
     "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
     "lucide-react": "https://esm.sh/lucide-react@^0.562.0",
-    "recharts": "https://esm.sh/recharts@^3.6.0",
     "vite": "https://esm.sh/vite@^7.3.0",
     "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
   }
