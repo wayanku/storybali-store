@@ -3,20 +3,18 @@ export interface Product {
   id: string;
   name: string;
   price: number;
+  originalPrice?: number;
   description: string;
-  category: 'Home' | 'Fashion' | 'Art' | 'Wellness';
+  category: string;
   image: string;
   story: string;
+  rating: number;
+  soldCount: number;
+  discountTag?: string;
 }
 
 export interface CartItem extends Product {
   quantity: number;
-}
-
-export interface User {
-  id: string;
-  name: string;
-  email: string;
 }
 
 export enum AppRoute {

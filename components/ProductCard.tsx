@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Product } from '../types';
-import { Plus, Eye } from 'lucide-react';
+import { Star, ShoppingCart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
@@ -11,47 +11,53 @@ interface ProductCardProps {
 
 const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onViewDetail }) => {
   return (
-    <div className="group bg-white rounded-xl overflow-hidden border border-stone-200 hover:shadow-xl transition-all duration-300">
-      <div className="relative aspect-[4/5] overflow-hidden bg-stone-100">
+    <div 
+      className="bg-white rounded-md overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-stone-100 cursor-pointer flex flex-col h-full"
+      onClick={() => onViewDetail(product)}
+    >
+      <div className="relative aspect-square bg-stone-50 overflow-hidden">
         <img 
           src={product.image} 
           alt={product.name}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          className="w-full h-full object-cover"
         />
-        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-          <button 
-            onClick={() => onViewDetail(product)}
-            className="p-3 bg-white rounded-full text-stone-800 hover:bg-emerald-600 hover:text-white transition-colors"
-          >
-            <Eye size={20} />
-          </button>
-          <button 
-            onClick={() => onAddToCart(product)}
-            className="p-3 bg-white rounded-full text-stone-800 hover:bg-emerald-600 hover:text-white transition-colors"
-          >
-            <Plus size={20} />
-          </button>
-        </div>
-        <div className="absolute top-4 left-4">
-          <span className="bg-white/90 backdrop-blur px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-800 rounded-full shadow-sm">
-            {product.category}
-          </span>
+        {product.discountTag && (
+          <div className="absolute top-0 right-0 bg-yellow-400 text-orange-700 font-bold text-[10px] px-2 py-1 rounded-bl-lg shadow-sm">
+            {product.discountTag}
+          </div>
+        )}
+        <div className="absolute bottom-2 left-2 flex gap-1">
+           <span className="bg-orange-500 text-white text-[9px] font-black px-1.5 py-0.5 rounded uppercase">MALL</span>
         </div>
       </div>
-      <div className="p-5">
-        <h3 className="text-lg font-bold text-stone-800 mb-1 group-hover:text-emerald-700 transition-colors">
+      
+      <div className="p-3 flex flex-col flex-grow">
+        <h3 className="text-[13px] leading-tight text-stone-800 line-clamp-2 mb-2 group-hover:text-orange-500">
           {product.name}
         </h3>
-        <p className="text-sm text-stone-500 line-clamp-2 mb-4 h-10 leading-relaxed">
-          {product.description}
-        </p>
-        <div className="flex items-center justify-between">
-          <span className="text-xl font-bold text-emerald-900">${product.price}.00</span>
+        
+        <div className="mt-auto">
+          <div className="flex items-center gap-1 mb-1">
+             <div className="flex text-yellow-400">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} size={10} fill={i < Math.floor(product.rating) ? "currentColor" : "none"} />
+                ))}
+             </div>
+             <span className="text-[10px] text-stone-400">| {product.soldCount > 1000 ? `${(product.soldCount/1000).toFixed(1)}k` : product.soldCount} Terjual</span>
+          </div>
+
+          <div className="flex items-baseline gap-1.5 flex-wrap">
+            <span className="text-orange-600 font-bold text-lg">${product.price}</span>
+            {product.originalPrice && (
+              <span className="text-stone-400 line-through text-[11px]">${product.originalPrice}</span>
+            )}
+          </div>
+          
           <button 
-            onClick={() => onAddToCart(product)}
-            className="text-xs font-bold uppercase tracking-widest text-stone-400 hover:text-emerald-700 transition-colors"
+            onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
+            className="w-full mt-3 bg-white border border-orange-500 text-orange-500 hover:bg-orange-50 py-1.5 rounded text-[11px] font-bold flex items-center justify-center gap-2 transition-colors"
           >
-            Add to Bag
+            <ShoppingCart size={14} /> Tambahkan
           </button>
         </div>
       </div>

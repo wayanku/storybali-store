@@ -43,15 +43,22 @@ export const chatWithStoreAssistant = async (history: any[], message: string): P
 export const generateMarketingImage = async (productName: string): Promise<string | null> => {
   try {
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Fix: Using gemini-2.5-flash-image for visual content generation with explicit imageConfig
     const response = await ai.models.generateContent({
       model: 'gemini-2.5-flash-image',
       contents: {
         parts: [{ text: `A high-end cinematic advertisement for a Balinese product called "${productName}". The setting is a luxury villa in Ubud at sunset, with tropical plants and soft lighting. 4k, professional photography.` }]
+      },
+      config: {
+        imageConfig: {
+          aspectRatio: "1:1"
+        }
       }
     });
 
     if (response.candidates?.[0]?.content?.parts) {
       for (const part of response.candidates[0].content.parts) {
+        // Fix: Properly iterate through parts to find the generated image data
         if (part.inlineData) {
           return `data:image/png;base64,${part.inlineData.data}`;
         }

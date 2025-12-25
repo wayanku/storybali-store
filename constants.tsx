@@ -4,56 +4,98 @@ import { Product } from './types';
 export const INITIAL_PRODUCTS: Product[] = [
   {
     id: '1',
-    name: 'Handwoven Rattan Bag',
+    name: 'Tas Rotan Handmade Tenganan',
     price: 45,
+    originalPrice: 90,
     category: 'Fashion',
-    description: 'A traditional Balinese round rattan bag, handcrafted by local artisans in Tenganan village.',
+    description: 'Tas rotan bundar tradisional Bali, dibuat langsung oleh pengrajin desa Tenganan.',
     image: 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&q=80&w=800',
-    story: 'In the heart of Karangasem, artisans spend days weaving smoke-cured rattan to create these iconic pieces of Balinese fashion.'
+    story: 'Dibuat dengan teknik pengasapan tradisional yang memberikan aroma khas dan ketahanan luar biasa.',
+    rating: 4.8,
+    soldCount: 1250,
+    discountTag: '50% OFF'
   },
   {
     id: '2',
-    name: 'Sandalwood Incense Set',
-    price: 25,
+    name: 'Dupa Cendana Premium Set',
+    price: 15,
+    originalPrice: 25,
     category: 'Wellness',
-    description: 'Aromatic sandalwood sticks for meditation and relaxation, sourced sustainably.',
+    description: 'Stik dupa cendana aromatik untuk meditasi dan relaksasi.',
     image: 'https://images.unsplash.com/photo-1602928294248-457ee57460f1?auto=format&fit=crop&q=80&w=800',
-    story: 'Bringing the temple atmosphere to your home. These scents have guided Balinese rituals for centuries.'
+    story: 'Membawa suasana pura Bali ke rumah Anda dengan wangi kayu suci.',
+    rating: 4.9,
+    soldCount: 3400,
+    discountTag: 'Flash Sale'
   },
   {
     id: '3',
-    name: 'Teak Wood Serving Tray',
+    name: 'Nampan Kayu Jati Minimalis',
     price: 65,
     category: 'Home',
-    description: 'Minimalist serving tray made from reclaimed Javanese teak wood.',
+    description: 'Nampan saji dari kayu jati reclaimed dengan finishing natural.',
     image: 'https://images.unsplash.com/photo-1591871937573-74dbba515c4c?auto=format&fit=crop&q=80&w=800',
-    story: 'Teak wood is known for its durability and beautiful grain. Each tray tells the history of the tree it came from.'
+    story: 'Setiap serat kayu menceritakan sejarah pohon jati tua di pegunungan Bali.',
+    rating: 4.7,
+    soldCount: 450
   },
   {
     id: '4',
-    name: 'Batik Silk Scarf',
+    name: 'Syal Sutra Batik Tulis',
     price: 35,
+    originalPrice: 50,
     category: 'Fashion',
-    description: 'Hand-painted silk scarf featuring traditional floral motifs from Ubud.',
+    description: 'Syal sutra lukis tangan dengan motif bunga khas Ubud.',
     image: 'https://images.unsplash.com/photo-1583209814683-c023dd293cc6?auto=format&fit=crop&q=80&w=800',
-    story: 'Batik is more than fabric; it is a canvas of cultural identity, hand-waxed and dyed in multiple stages.'
+    story: 'Proses batik tulis yang memakan waktu berminggu-minggu untuk satu helai kain.',
+    rating: 5.0,
+    soldCount: 89,
+    discountTag: 'Exclusive'
   },
   {
     id: '5',
-    name: 'Ceramic Ritual Bowl',
+    name: 'Mangkuk Keramik Abu Vulkanik',
     price: 55,
     category: 'Art',
-    description: 'Glazed ceramic bowl inspired by the volcanic textures of Mount Agung.',
+    description: 'Mangkuk keramik yang terinspirasi tekstur Gunung Agung.',
     image: 'https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?auto=format&fit=crop&q=80&w=800',
-    story: 'Crafted in a small studio in Pejaten, this bowl represents the earth and fire elements of the island.'
+    story: 'Dibuat di studio keramik Pejaten menggunakan tanah liat lokal pilihan.',
+    rating: 4.6,
+    soldCount: 210
   },
   {
     id: '6',
-    name: 'Virgin Coconut Oil',
-    price: 18,
+    name: 'Minyak Kelapa Murni (VCO)',
+    price: 12,
+    originalPrice: 18,
     category: 'Wellness',
-    description: 'Cold-pressed coconut oil, perfect for skin, hair, and cooking.',
+    description: 'Cold-pressed coconut oil organik dari perkebunan Bali Utara.',
     image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?auto=format&fit=crop&q=80&w=800',
-    story: 'Sourced from organic groves in North Bali, where the palms meet the sea.'
+    story: 'Rahasia kecantikan alami wanita Bali turun-temurun.',
+    rating: 4.8,
+    soldCount: 5600,
+    discountTag: 'Best Seller'
+  },
+  {
+    id: '7',
+    name: 'Patung Kayu Kucing Bali',
+    price: 25,
+    category: 'Art',
+    description: 'Dekorasi kayu berbentuk kucing dengan lukisan warna-warni.',
+    image: 'https://images.unsplash.com/photo-1610411132800-4742f3614210?auto=format&fit=crop&q=80&w=800',
+    story: 'Simbol keberuntungan dan keceriaan yang sering ditemukan di pasar seni.',
+    rating: 4.5,
+    soldCount: 120
+  },
+  {
+    id: '8',
+    name: 'Sabun Batang Herbal Lemongrass',
+    price: 8,
+    category: 'Wellness',
+    description: 'Sabun alami dengan ekstrak sereh yang menyegarkan kulit.',
+    image: 'https://images.unsplash.com/photo-1607006344380-b6775a0824a7?auto=format&fit=crop&q=80&w=800',
+    story: 'Dibuat tanpa bahan kimia keras, menjaga kelestarian air di Bali.',
+    rating: 4.9,
+    soldCount: 15000
   }
 ];
