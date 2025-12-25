@@ -4,24 +4,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
-  <title>StoryBali Store - Artisan Cultural Heritage</title>
+  <title>StoryBali Store - Premium Marketplace</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
   <style>
     :root {
       --font-jakarta: 'Plus Jakarta Sans', sans-serif;
       --shopee-orange: #ee4d2d;
-      --bg-gray: #f5f5f5;
+      --bg-gray: #f8f9fa;
     }
     body {
       font-family: var(--font-jakarta);
       background-color: var(--bg-gray);
-      color: #333;
+      color: #1a1a1a;
       -webkit-tap-highlight-color: transparent;
-    }
-    /* Shopee-style transitions */
-    .transition-custom {
-      transition: all 0.2s ease-in-out;
     }
     .no-scrollbar::-webkit-scrollbar {
       display: none;
@@ -30,17 +26,14 @@
       -ms-overflow-style: none;
       scrollbar-width: none;
     }
-    input::placeholder {
-      font-size: 0.8rem;
-      opacity: 0.5;
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
     }
-    /* Skeleton-like loading look */
-    .loading-pulse {
-      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; }
-      50% { opacity: .5; }
+    .shimmer-btn {
+      background: linear-gradient(90deg, #ee4d2d 0%, #ff7a5c 50%, #ee4d2d 100%);
+      background-size: 200% 100%;
+      animation: shimmer 3s infinite linear;
     }
   </style>
 <script type="importmap">

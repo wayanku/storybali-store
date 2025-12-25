@@ -8,12 +8,10 @@ import ChatWidget from './components/ChatWidget';
 import AdminProductManager from './components/AdminProductManager';
 import { 
   Sparkles, Star, ShoppingCart, ShoppingBag, 
-  ChevronRight, MapPin, Truck, Lock, 
-  Home, Grid, User, Search,
-  ShieldCheck, CreditCard, Clock,
-  Zap, Ticket, Smartphone, Gift, 
+  MapPin, Truck, Home, Grid, User, Search,
+  ShieldCheck, CreditCard, Zap, Ticket, Smartphone, Gift, 
   Heart, Newspaper, ExternalLink, Laptop, 
-  Loader2, CheckCircle2, ShoppingBasket, X, Plus, Minus, Trash2
+  Loader2, CheckCircle2, ShoppingBasket, Plus, Minus, Trash2
 } from 'lucide-react';
 import { getStoreData } from './services/cloudService';
 import { getShoppingLiveTrends, findNearestServiceCenters } from './services/geminiService';
@@ -34,7 +32,6 @@ const App: React.FC = () => {
   const [nearbyService, setNearbyService] = useState<{text: string, sources: any[]} | null>(null);
   const [timeLeft, setTimeLeft] = useState({ hours: 4, minutes: 20, seconds: 0 });
 
-  // Update Countdown Timer for Flash Sale
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
@@ -48,35 +45,38 @@ const App: React.FC = () => {
     return () => clearInterval(timer);
   }, []);
 
-  // Initialize data and fetch grounding information
   useEffect(() => {
     const initApp = async () => {
       setIsLoading(true);
-      const scriptUrl = localStorage.getItem('storybali_script_url') || GLOBAL_CONFIG.MASTER_SCRIPT_URL;
-      const cloudData = await getStoreData(scriptUrl);
-      setProducts(cloudData || INITIAL_PRODUCTS);
-      
-      // Get location for more relevant grounding results if possible
-      let lat, lng;
       try {
-        const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
-          navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
-        });
-        lat = pos.coords.latitude;
-        lng = pos.coords.longitude;
-      } catch (e) {
-        // Continue without coordinates
-      }
+        const scriptUrl = localStorage.getItem('storybali_script_url') || GLOBAL_CONFIG.MASTER_SCRIPT_URL;
+        const cloudData = await getStoreData(scriptUrl);
+        setProducts(cloudData || INITIAL_PRODUCTS);
+        
+        let lat, lng;
+        try {
+          const pos = await new Promise<GeolocationPosition>((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 3000 });
+          });
+          lat = pos.coords.latitude;
+          lng = pos.coords.longitude;
+        } catch (e) {
+          console.debug("Geolocation not available");
+        }
 
-      // Concurrent fetch for trends and service locations
-      const [trends, services] = await Promise.all([
-        getShoppingLiveTrends(),
-        findNearestServiceCenters(lat, lng)
-      ]);
-      
-      setLiveTrends(trends);
-      setNearbyService(services);
-      setIsLoading(false);
+        const [trends, services] = await Promise.all([
+          getShoppingLiveTrends(),
+          findNearestServiceCenters(lat, lng)
+        ]);
+        
+        setLiveTrends(trends);
+        setNearbyService(services);
+      } catch (err) {
+        console.error("Init App Error:", err);
+        setProducts(INITIAL_PRODUCTS);
+      } finally {
+        setIsLoading(false);
+      }
     };
     initApp();
     
@@ -140,7 +140,6 @@ const App: React.FC = () => {
 
   const renderHome = () => (
     <div className="space-y-6 pb-20">
-      {/* Banner Carousel Simulation */}
       <section className="bg-white">
         <div className="max-w-7xl mx-auto px-4 py-4">
           <div className="grid grid-cols-1 md:grid-cols-12 gap-2">
@@ -173,7 +172,6 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Floating Icons Bar - Fixed cloneElement issue by passing props directly */}
       <section className="bg-white border-y border-stone-50 py-6">
         <div className="max-w-7xl mx-auto px-4 grid grid-cols-3 md:grid-cols-6 gap-4">
           {[
@@ -194,7 +192,6 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Flash Sale Section */}
       <section className="max-w-7xl mx-auto px-4">
         <div className="bg-white rounded-2xl shadow-sm border border-stone-100 overflow-hidden">
           <div className="p-5 flex items-center justify-between border-b border-stone-50">
@@ -234,17 +231,16 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Grounding Info Grid - Displaying AI-powered insights with sources */}
       <section className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 gap-4">
         <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm flex items-start gap-5">
           <div className="w-12 h-12 rounded-xl bg-orange-50 text-[#ee4d2d] flex items-center justify-center shrink-0">
              <Newspaper size={24} />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 overflow-hidden">
              <h3 className="text-sm font-bold text-stone-900">Trending Global</h3>
              {liveTrends ? (
                <div className="space-y-2">
-                 <p className="text-xs text-stone-500 italic leading-relaxed">"{liveTrends.text.substring(0, 150)}..."</p>
+                 <p className="text-xs text-stone-500 italic leading-relaxed line-clamp-2">"{liveTrends.text}..."</p>
                  <div className="flex flex-wrap gap-2">
                    {liveTrends.sources.map((source, idx) => (
                      source.web?.uri && (
@@ -255,18 +251,18 @@ const App: React.FC = () => {
                    ))}
                  </div>
                </div>
-             ) : <div className="h-10 bg-stone-50 animate-pulse rounded"></div>}
+             ) : <div className="h-10 w-full bg-stone-50 animate-pulse rounded"></div>}
           </div>
         </div>
         <div className="bg-white p-6 rounded-2xl border border-stone-100 shadow-sm flex items-start gap-5">
           <div className="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
              <MapPin size={24} />
           </div>
-          <div className="space-y-1">
+          <div className="space-y-1 overflow-hidden">
              <h3 className="text-sm font-bold text-stone-900">Layanan Terdekat</h3>
              {nearbyService ? (
                <div className="space-y-2">
-                 <p className="text-xs text-stone-500 leading-relaxed truncate max-w-[200px]">{nearbyService.text.substring(0, 100)}...</p>
+                 <p className="text-xs text-stone-500 leading-relaxed truncate">{nearbyService.text}</p>
                  <div className="flex flex-wrap gap-2">
                    {nearbyService.sources.map((source, idx) => (
                      source.maps?.uri && (
@@ -284,7 +280,6 @@ const App: React.FC = () => {
         </div>
       </section>
 
-      {/* Main Feed */}
       <section className="max-w-7xl mx-auto px-4">
         <div className="flex items-center gap-4 mb-8 overflow-x-auto no-scrollbar border-b border-stone-100 pb-2">
            {['Semua', 'Rekomendasi', 'Terbaru', 'Best Seller'].map(t => (
@@ -369,9 +364,6 @@ const App: React.FC = () => {
                     </div>
                  </div>
                  <button onClick={() => showToast('Menghubungkan ke payment gateway...')} className="w-full py-4 bg-[#ee4d2d] text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-orange-100 hover:bg-[#d73211] transition-all transform active:scale-95">Beli Sekarang ({cartCount})</button>
-                 <div className="flex items-center justify-center gap-2 text-[10px] text-stone-400 font-bold uppercase tracking-widest">
-                    <ShieldCheck size={14} className="text-emerald-500" /> Transaksi Aman & Terenkripsi
-                 </div>
               </div>
            </div>
         </div>
@@ -382,111 +374,60 @@ const App: React.FC = () => {
   const renderProductDetail = () => {
     if (!selectedProduct) return null;
     return (
-      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 animate-in fade-in zoom-in-95 duration-500">
+      <div className="max-w-7xl mx-auto px-4 py-8 md:py-12">
         <div className="bg-white rounded-3xl overflow-hidden shadow-sm border border-stone-100 grid grid-cols-1 lg:grid-cols-2">
-          {/* Images Section */}
           <div className="p-4 md:p-8 space-y-4">
              <div className="aspect-square rounded-2xl overflow-hidden bg-stone-50 border border-stone-100">
                 <img src={selectedProduct.images[0]} className="w-full h-full object-cover" />
              </div>
              <div className="grid grid-cols-4 gap-4">
                 {selectedProduct.images.slice(0, 4).map((img, i) => (
-                  <div key={i} className="aspect-square rounded-xl overflow-hidden bg-stone-50 border border-stone-100 cursor-pointer hover:border-[#ee4d2d] transition-all">
+                  <div key={i} className="aspect-square rounded-xl overflow-hidden bg-stone-50 border border-stone-100">
                     <img src={img} className="w-full h-full object-cover" />
                   </div>
                 ))}
              </div>
           </div>
-          
-          {/* Info Section */}
           <div className="p-8 md:p-12 space-y-8 flex flex-col justify-center">
              <div className="space-y-2">
                 <div className="flex items-center gap-2">
                    <span className="bg-[#ee4d2d] text-white text-[9px] font-black uppercase px-2 py-0.5 rounded italic">Official</span>
                    <span className="text-[10px] text-stone-400 font-bold uppercase tracking-widest">{selectedProduct.category}</span>
                 </div>
-                <h1 className="text-3xl md:text-4xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h1>
-                <div className="flex items-center gap-4 text-xs">
-                   <div className="flex items-center gap-1 text-yellow-400 font-bold border-r border-stone-100 pr-4">
-                      <Star size={16} fill="currentColor" /> {selectedProduct.rating}
-                   </div>
-                   <div className="text-stone-500 font-bold border-r border-stone-100 pr-4">
-                      {selectedProduct.soldCount} Terjual
-                   </div>
-                   <div className="text-[#ee4d2d] font-bold">
-                      Original 100%
-                   </div>
+                <h1 className="text-3xl font-black text-stone-900 leading-tight">{selectedProduct.name}</h1>
+                <div className="flex items-center gap-4 text-xs font-bold">
+                   <div className="flex items-center gap-1 text-yellow-400"><Star size={16} fill="currentColor" /> {selectedProduct.rating}</div>
+                   <div className="text-stone-500">{selectedProduct.soldCount} Terjual</div>
                 </div>
              </div>
-
-             <div className="bg-stone-50 p-8 rounded-2xl space-y-2">
-                {selectedProduct.originalPrice && (
-                  <span className="text-sm text-stone-300 line-through">Rp {selectedProduct.originalPrice.toLocaleString('id-ID')}</span>
-                )}
-                <div className="flex items-center gap-4">
-                  <h2 className="text-4xl font-black text-[#ee4d2d]">Rp {selectedProduct.price.toLocaleString('id-ID')}</h2>
-                  {selectedProduct.discountTag && (
-                    <span className="bg-orange-100 text-[#ee4d2d] text-[10px] font-black px-2 py-1 rounded-md">{selectedProduct.discountTag}</span>
-                  )}
-                </div>
+             <div className="bg-stone-50 p-8 rounded-2xl">
+                <h2 className="text-4xl font-black text-[#ee4d2d]">Rp {selectedProduct.price.toLocaleString('id-ID')}</h2>
              </div>
-
-             <div className="space-y-6">
-                <div className="flex items-start gap-4">
-                   <Truck size={20} className="text-stone-400" />
-                   <div>
-                      <p className="text-xs font-bold text-stone-900">Bebas Ongkir</p>
-                      <p className="text-[10px] text-stone-400">Estimasi tiba dalam 2-3 hari kerja.</p>
-                   </div>
-                </div>
-                <div className="flex items-start gap-4">
-                   <ShieldCheck size={20} className="text-stone-400" />
-                   <div>
-                      <p className="text-xs font-bold text-stone-900">7 Hari Pengembalian</p>
-                      <p className="text-[10px] text-stone-400">Syarat dan ketentuan berlaku untuk barang rusak/salah.</p>
-                   </div>
-                </div>
-             </div>
-
              <div className="pt-8 grid grid-cols-2 gap-4">
-                <button onClick={() => addToCart(selectedProduct)} className="py-4 border-2 border-[#ee4d2d] text-[#ee4d2d] rounded-2xl font-black uppercase text-xs hover:bg-orange-50 transition-colors">Tambah Keranjang</button>
-                <button onClick={() => { addToCart(selectedProduct); setRoute(AppRoute.CART); }} className="py-4 bg-[#ee4d2d] text-white rounded-2xl font-black uppercase text-xs shadow-xl shadow-orange-100 hover:bg-[#d73211] transition-all">Beli Sekarang</button>
+                <button onClick={() => addToCart(selectedProduct)} className="py-4 border-2 border-[#ee4d2d] text-[#ee4d2d] rounded-2xl font-black uppercase text-xs">Tambah Keranjang</button>
+                <button onClick={() => { addToCart(selectedProduct); setRoute(AppRoute.CART); }} className="py-4 bg-[#ee4d2d] text-white rounded-2xl font-black uppercase text-xs">Beli Sekarang</button>
              </div>
           </div>
-        </div>
-
-        {/* Tab Description & Reviews */}
-        <div className="mt-12 bg-white rounded-3xl p-8 md:p-12 shadow-sm border border-stone-100">
-           <div className="border-b border-stone-50 pb-4 mb-8">
-              <h3 className="text-lg font-black uppercase tracking-widest text-[#ee4d2d]">Spesifikasi & Detail</h3>
-           </div>
-           <p className="text-stone-600 leading-relaxed whitespace-pre-wrap">{selectedProduct.description}</p>
         </div>
       </div>
     );
   };
 
   return (
-    <div className="min-h-screen bg-[#f8f9fa] selection:bg-[#ee4d2d] selection:text-white">
+    <div className="min-h-screen">
       {route !== AppRoute.ADMIN && <Navbar onNavigate={setRoute} cartCount={cartCount} />}
-      
-      {/* Toast Notification */}
       {toast && (
-        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-stone-900 text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl flex items-center gap-3 animate-in slide-in-from-top-4">
-          <CheckCircle2 size={16} className="text-emerald-500" />
-          {toast}
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[100] bg-stone-900 text-white px-6 py-3 rounded-full text-xs font-bold shadow-2xl flex items-center gap-3">
+          <CheckCircle2 size={16} className="text-emerald-500" /> {toast}
         </div>
       )}
 
       {isLoading ? (
         <div className="h-screen flex items-center justify-center bg-white">
-           <div className="flex flex-col items-center gap-4">
-              <div className="w-12 h-12 border-4 border-[#ee4d2d] border-t-transparent rounded-full animate-spin"></div>
-              <p className="text-[10px] font-black uppercase tracking-[0.3em] text-stone-400">Memuat StoryBali Store...</p>
-           </div>
+           <Loader2 className="animate-spin text-[#ee4d2d]" size={40} />
         </div>
       ) : (
-        <main className="min-h-screen">
+        <main>
           {route === AppRoute.HOME && renderHome()}
           {route === AppRoute.CART && renderCart()}
           {route === AppRoute.PRODUCT_DETAIL && renderProductDetail()}
@@ -494,23 +435,10 @@ const App: React.FC = () => {
         </main>
       )}
 
-      {/* Mobile Nav Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-stone-100 flex justify-around items-center h-20 z-50 px-4">
-        <button onClick={() => setRoute(AppRoute.HOME)} className={`flex flex-col items-center gap-1 ${route === AppRoute.HOME ? 'text-[#ee4d2d]' : 'text-stone-300'}`}>
-          <Home size={22}/><span className="text-[9px] font-black uppercase">Beranda</span>
-        </button>
-        <button onClick={() => setRoute(AppRoute.HOME)} className="flex flex-col items-center gap-1 text-stone-300">
-          <Grid size={22}/><span className="text-[9px] font-black uppercase">Kategori</span>
-        </button>
-        <div className="relative">
-           <button onClick={() => setRoute(AppRoute.CART)} className={`flex flex-col items-center gap-1 ${route === AppRoute.CART ? 'text-[#ee4d2d]' : 'text-stone-300'}`}>
-             <ShoppingCart size={22}/><span className="text-[9px] font-black uppercase">Keranjang</span>
-           </button>
-           {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-[#ee4d2d] text-white text-[8px] w-4 h-4 rounded-full flex items-center justify-center font-bold">{cartCount}</span>}
-        </div>
-        <button onClick={() => setRoute(AppRoute.ADMIN)} className={`flex flex-col items-center gap-1 ${route === AppRoute.ADMIN ? 'text-[#ee4d2d]' : 'text-stone-300'}`}>
-          <User size={22}/><span className="text-[9px] font-black uppercase">Saya</span>
-        </button>
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-stone-100 flex justify-around items-center h-20 z-50">
+        <button onClick={() => setRoute(AppRoute.HOME)} className={`flex flex-col items-center ${route === AppRoute.HOME ? 'text-[#ee4d2d]' : 'text-stone-300'}`}><Home size={22}/></button>
+        <button onClick={() => setRoute(AppRoute.CART)} className={`flex flex-col items-center ${route === AppRoute.CART ? 'text-[#ee4d2d]' : 'text-stone-300'}`}><ShoppingCart size={22}/></button>
+        <button onClick={() => setRoute(AppRoute.ADMIN)} className={`flex flex-col items-center ${route === AppRoute.ADMIN ? 'text-[#ee4d2d]' : 'text-stone-300'}`}><User size={22}/></button>
       </div>
 
       <ChatWidget />
