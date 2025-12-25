@@ -2,28 +2,40 @@
 import { Product } from '../types';
 
 /**
+ * Membersihkan URL dari spasi atau karakter ilegal
+ */
+const sanitizeUrl = (url: string): string => {
+  return url.trim().replace(/\s/g, '');
+};
+
+/**
  * Fungsi untuk mengambil data dari Google Sheets.
  */
 export const getStoreData = async (scriptUrl: string): Promise<Product[] | null> => {
   if (!scriptUrl) return null;
   
+  const cleanUrl = sanitizeUrl(scriptUrl);
+  
   try {
-    const url = new URL(scriptUrl);
-    url.searchParams.set('_t', Date.now().toString()); // Anti-cache
+    const urlObj = new URL(cleanUrl);
+    urlObj.searchParams.set('_t', Date.now().toString()); // Anti-cache
 
-    const response = await fetch(url.toString(), {
+    const response = await fetch(urlObj.toString(), {
       method: 'GET',
-      mode: 'cors'
+      headers: {
+        'Accept': 'application/json'
+      }
     });
 
-    if (!response.ok) throw new Error('Network response was not ok');
+    if (!response.ok) throw new Error(`Server returned ${response.status}`);
+    
     const data = await response.json();
     
     if (!Array.isArray(data)) return [];
 
     return data.map((p: any) => {
-      // LOGIKA PARSING GAMBAR YANG SANGAT KUAT
-      let rawImages = p.images || p.image || p.gambar || p.Gambar || '';
+      // LOGIKA PARSING GAMBAR (Mencari di berbagai kemungkinan nama kolom)
+      let rawImages = p.image || p.images || p.gambar || p.Gambar || '';
       let parsedImages: string[] = [];
 
       try {
@@ -31,35 +43,26 @@ export const getStoreData = async (scriptUrl: string): Promise<Product[] | null>
           parsedImages = rawImages;
         } else if (typeof rawImages === 'string' && rawImages.trim() !== '') {
           const trimmed = rawImages.trim();
-          // Jika formatnya JSON array: ["url1","url2"]
           if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
             parsedImages = JSON.parse(trimmed);
           } else if (trimmed.includes(',')) {
-            // Jika formatnya CSV: url1,url2
             parsedImages = trimmed.split(',').map(s => s.trim());
           } else {
-            // Jika link tunggal
             parsedImages = [trimmed];
           }
         }
       } catch (e) {
-        console.error("Gagal parsing gambar untuk produk:", p.name, e);
         parsedImages = [];
       }
 
-      // Filter link valid
       parsedImages = parsedImages.filter(img => typeof img === 'string' && img.startsWith('http'));
-
-      if (parsedImages.length === 0) {
-        parsedImages = ['https://via.placeholder.com/600x600?text=StoryBali+Store'];
-      }
 
       return {
         ...p,
         id: String(p.id || Date.now()),
         name: String(p.name || 'Produk Tanpa Nama'),
         price: Number(p.price || 0),
-        images: parsedImages,
+        images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/600x600?text=No+Image'],
         category: String(p.category || 'Umum'),
         description: String(p.description || ''),
         story: String(p.story || ''),
@@ -78,21 +81,23 @@ export const getStoreData = async (scriptUrl: string): Promise<Product[] | null>
  */
 export const updateStoreData = async (scriptUrl: string, products: Product[]): Promise<boolean> => {
   if (!scriptUrl) return false;
+  
+  const cleanUrl = sanitizeUrl(scriptUrl);
 
   try {
-    // FORMAT BARU: Gunakan pemisah koma (CSV) daripada JSON string agar aman di Google Sheets
+    // Masalah utama: Google Script mengharapkan kolom bernama "image" (singular)
+    // sedangkan aplikasi menggunakan "images" (plural).
+    // Kita kirimkan kedua kunci agar Google Script bisa memetakan data dengan benar.
     const payload = products.map(p => {
-      const imagesString = Array.isArray(p.images) ? p.images.join(',') : p.images;
-      console.log(`📦 Menyiapkan link gambar untuk ${p.name}:`, imagesString);
+      const imagesString = Array.isArray(p.images) ? p.images.join(',') : String(p.images || '');
       return {
         ...p,
-        images: imagesString
+        image: imagesString,  // UNTUK GOOGLE SHEETS (Kolom 'image')
+        images: imagesString  // Fallback
       };
     });
 
-    // Gunakan mode no-cors dengan Content-Type text/plain 
-    // agar permintaan diklasifikasikan sebagai 'simple request' dan menghindari kegagalan preflight CORS.
-    await fetch(scriptUrl, {
+    await fetch(cleanUrl, {
       method: 'POST',
       mode: 'no-cors',
       headers: {
@@ -101,9 +106,7 @@ export const updateStoreData = async (scriptUrl: string, products: Product[]): P
       body: JSON.stringify({ products: payload }),
     });
 
-    // Karena mode no-cors, kita tidak bisa membaca body respon, 
-    // tapi kita asumsikan berhasil jika tidak ada error lemparan.
-    console.log("✅ Permintaan sinkronisasi telah dikirim ke Google Sheets.");
+    console.log("✅ Payload Terkirim dengan kunci 'image'.");
     return true;
   } catch (error) {
     console.error('Update Cloud Data Error:', error);

@@ -51,24 +51,20 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
       setLocalProducts(data);
       onUpdateProducts(data);
     } else {
-      alert('Gagal mengambil data. Pastikan Script URL benar.');
+      alert('⚠️ Gagal Terhubung ke Cloud!\n\nKemungkinan penyebab:\n1. URL Script salah atau ada spasi.\n2. Script belum di-deploy sebagai Web App.\n3. Akses Script belum disetel ke "Anyone".\n4. Browser memblokir koneksi (CORS).');
     }
   };
 
   const handlePush = async (productsToPush: Product[]) => {
-    if (!scriptUrl) return;
+    if (!scriptUrl) return alert('Atur URL Google Script di menu Settings!');
     setIsUpdating(true);
-    
-    // Debugging Log: Lihat apa yang dikirim
-    console.log("📤 Mengirim Payload ke Sheets:", productsToPush);
-    
     const success = await updateStoreData(scriptUrl, productsToPush);
     setIsUpdating(false);
     if (success) {
       onUpdateProducts(productsToPush);
-      alert('Sinkronisasi Berhasil! Data telah diperbarui di Google Sheets.');
+      alert('✅ Sinkronisasi Berhasil!\nLink gambar dan data produk telah dikirim ke Google Sheets.');
     } else {
-      alert('Sinkronisasi Gagal. Cek koneksi atau Script URL Anda.');
+      alert('❌ Sinkronisasi Gagal. Cek koneksi internet Anda.');
     }
   };
 
@@ -92,7 +88,7 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
       handlePush(newList);
     } else {
       onUpdateProducts(newList);
-      alert('Tersimpan di memori lokal. Klik "Push Cloud" untuk mengirim link gambar ke Google Sheets.');
+      alert('Tersimpan di memori lokal. Jangan lupa klik "Push Cloud" agar link gambar masuk ke Sheet.');
     }
   };
 
@@ -100,7 +96,7 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
     if (!manualImageUrl || !manualImageUrl.startsWith('http')) return alert('Masukkan URL yang valid (dimulai dengan http)');
     setFormData({
       ...formData,
-      images: [...(formData.images || []), manualImageUrl]
+      images: [...(formData.images || []), manualImageUrl.trim()]
     });
     setManualImageUrl('');
   };
@@ -308,10 +304,9 @@ const AdminProductManager: React.FC<AdminProductManagerProps> = ({ products, onU
                   for (let i = 0; i < files.length; i++) {
                      const url = await uploadImageToImgBB(files[i], imgbbKey);
                      if (url) {
-                       console.log("✅ ImgBB Sukses:", url);
                        current.push(url);
                      } else {
-                       alert('Gagal upload salah satu gambar. Cek API Key ImgBB Anda.');
+                       alert('Gagal upload salah satu gambar.');
                      }
                   }
                   setFormData({...formData, images: current});
