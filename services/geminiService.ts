@@ -1,61 +1,79 @@
 
 import { GoogleGenAI } from "@google/genai";
 
+const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
+
 export const getProductEnhancement = async (productName: string, currentDesc: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAI();
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Anda adalah copywriter puitis untuk StoryBali Store. Tulis deskripsi produk yang memikat, berbasis cerita, dan menggunakan bahasa Indonesia yang indah untuk "${productName}". Deskripsi aslinya adalah: "${currentDesc}". Buat pembaca merasakan keajaiban dan budaya Bali. Tetap di bawah 100 kata.`,
+      contents: `Anda adalah copywriter e-commerce profesional. Tulis deskripsi produk yang persuasif, menonjolkan fitur utama, dan menggunakan bahasa Indonesia yang menarik untuk "${productName}". Deskripsi aslinya: "${currentDesc}". Maks 100 kata.`,
     });
     return response.text || currentDesc;
   } catch (error) {
-    console.error("Gemini Error:", error);
     return currentDesc;
   }
 };
 
 export const chatWithStoreAssistant = async (history: any[], message: string): Promise<string> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAI();
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
       config: {
-        systemInstruction: 'Anda adalah Bli Wayan, asisten virtual ramah dari StoryBali Store. Anda harus selalu menyapa dengan "Om Swastiastu" di awal percakapan jika baru mulai, dan menggunakan bahasa Indonesia yang santun, hangat, dan mengenal budaya Bali. Anda membantu pelanggan menemukan kerajinan tangan terbaik Bali.',
+        systemInstruction: 'Anda adalah StoryBot, asisten virtual dari StoryBali Store. Anda ramah, solutif, dan profesional. Bantu pelanggan menemukan produk terbaik, berikan rekomendasi belanja, dan informasi promo. Jangan gunakan sapaan khusus daerah.',
       }
     });
     const response = await chat.sendMessage({ message });
-    return response.text || "Mohon maaf, koneksi saya sedang terganggu oleh roh halus. Bisa ulangi kembali?";
+    return response.text || "Ada lagi yang bisa saya bantu?";
   } catch (error) {
-    console.error("Chat Error:", error);
-    return "Mohon maaf, Bli Wayan sedang sibuk. Ada yang bisa saya bantu lainnya?";
+    return "Sistem sedang sibuk, silakan coba lagi nanti.";
   }
 };
 
-export const generateMarketingImage = async (productName: string): Promise<string | null> => {
+export const getShoppingLiveTrends = async (): Promise<{text: string, sources: any[]}> => {
   try {
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash-image',
-      contents: {
-        parts: [{ text: `A ultra-luxury cinematic advertisement for a Balinese artisan product called "${productName}". The scene is set in a premium Ubud jungle resort at golden hour, with tropical greenery, soft warm lighting, and shallow depth of field. 8k resolution, professional commercial photography, high-end lifestyle style.` }]
-      },
+      model: "gemini-3-flash-preview",
+      contents: "Sebutkan 3 kategori produk e-commerce atau barang yang sedang tren dicari pembeli di Indonesia saat ini.",
       config: {
-        imageConfig: {
-          aspectRatio: "1:1"
-        }
-      }
+        tools: [{googleSearch: {}}],
+      },
     });
-
-    if (response.candidates?.[0]?.content?.parts) {
-      for (const part of response.candidates[0].content.parts) {
-        if (part.inlineData) {
-          return `data:image/png;base64,${part.inlineData.data}`;
-        }
-      }
-    }
+    return {
+      text: response.text || "Sedang memuat tren belanja terbaru.",
+      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
+    };
   } catch (error) {
-    console.error("Image Generation Error:", error);
+    return { text: "Gagal memuat tren.", sources: [] };
   }
-  return null;
+};
+
+export const findNearestServiceCenters = async (lat: number, lng: number): Promise<{text: string, sources: any[]}> => {
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-flash",
+      contents: "Sebutkan 3 pusat perbelanjaan atau service center gadget terdekat dari lokasi koordinat ini.",
+      config: {
+        tools: [{googleMaps: {}}],
+        toolConfig: {
+          retrievalConfig: {
+            latLng: {
+              latitude: lat,
+              longitude: lng
+            }
+          }
+        }
+      },
+    });
+    return {
+      text: response.text || "Informasi lokasi tidak tersedia.",
+      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
+    };
+  } catch (error) {
+    return { text: "Gagal memuat data lokasi.", sources: [] };
+  }
 };

@@ -1,15 +1,25 @@
 
 import React from 'react';
 import { Product } from '../types';
-import { Star, MapPin } from 'lucide-react';
+import { Star, MapPin, Heart } from 'lucide-react';
 
 interface ProductCardProps {
   product: Product;
   onAddToCart: (p: Product) => void;
   onViewDetail: (p: Product) => void;
+  // Fix: Added missing props to match App.tsx usage
+  onToggleWishlist?: (p: Product) => void;
+  isWishlisted?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onViewDetail }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onAddToCart, 
+  onViewDetail,
+  // Fix: Added missing props to destructuring
+  onToggleWishlist,
+  isWishlisted
+}) => {
   const mainImage = (Array.isArray(product.images) && product.images.length > 0) 
     ? product.images[0] 
     : 'https://via.placeholder.com/400x400?text=No+Image';
@@ -27,6 +37,17 @@ const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart, onViewD
           loading="lazy"
         />
         
+        {/* Wishlist Button */}
+        <button 
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleWishlist?.(product);
+          }}
+          className="absolute top-2 left-2 p-1.5 rounded-full bg-white/70 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white"
+        >
+          <Heart size={14} className={isWishlisted ? 'fill-red-500 text-red-500' : 'text-stone-400'} />
+        </button>
+
         {/* Discount Badge */}
         {product.discountTag ? (
           <div className="absolute top-0 right-0 bg-yellow-400 text-[#ee4d2d] text-[10px] font-black px-1.5 py-0.5 rounded-bl-sm">

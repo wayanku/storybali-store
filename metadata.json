@@ -1,8 +1,9 @@
 {
-  "name": "StoryBali Store Pro",
-  "description": "Platform e-commerce premium warisan budaya Bali dengan sinkronisasi Cloud real-time.",
+  "name": "StoryBali General Store",
+  "description": "Platform e-commerce modern dengan fitur lengkap: Flash Sale, AI Assistant, dan Sinkronisasi Cloud.",
   "requestFramePermissions": [
     "camera",
-    "microphone"
+    "microphone",
+    "geolocation"
   ]
 }
