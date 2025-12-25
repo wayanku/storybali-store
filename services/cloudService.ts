@@ -6,7 +6,7 @@ const sanitizeUrl = (url: string): string => {
 };
 
 export const getStoreData = async (scriptUrl: string, sheet: string = "Products"): Promise<any[] | null> => {
-  if (!scriptUrl) return null;
+  if (!scriptUrl || scriptUrl.includes('YOUR_SCRIPT_URL')) return null;
   const cleanUrl = sanitizeUrl(scriptUrl);
   try {
     const urlObj = new URL(cleanUrl);
@@ -14,8 +14,11 @@ export const getStoreData = async (scriptUrl: string, sheet: string = "Products"
     urlObj.searchParams.set('_t', Date.now().toString());
 
     const response = await fetch(urlObj.toString());
-    if (!response.ok) throw new Error(`Server returned ${response.status}`);
-    const data = await response.json();
+    if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+    
+    const rawData = await response.json();
+    let data = Array.isArray(rawData) ? rawData : (rawData.data || rawData.orders || rawData.products || []);
+
     if (!Array.isArray(data)) return [];
 
     if (sheet === "Products") {
@@ -31,17 +34,30 @@ export const getStoreData = async (scriptUrl: string, sheet: string = "Products"
             else parsedImages = [trimmed];
           }
         } catch (e) { parsedImages = []; }
+        
         return {
           ...p,
-          id: String(p.id),
-          price: Number(p.price),
-          images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/600x600?text=No+Image']
+          id: String(p.id || ''),
+          price: Number(p.price || 0),
+          images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/600x600?text=No+Image'],
+          rating: Number(p.rating || 5),
+          soldCount: Number(p.soldCount || 0)
         };
       });
     }
+    
+    if (sheet === "Orders") {
+      return data.map((o: any) => ({
+        ...o,
+        orderId: String(o.orderId || o.id || ''),
+        total: Number(o.total || 0),
+        status: (o.status as OrderStatus) || 'Pending'
+      }));
+    }
+
     return data;
   } catch (error) {
-    console.error('Fetch Error:', error);
+    console.error(`Fetch Error (${sheet}):`, error);
     return null;
   }
 };
@@ -93,6 +109,7 @@ export const updateOrderStatusInCloud = async (scriptUrl: string, orderId: strin
 };
 
 export const uploadImageToImgBB = async (file: File, apiKey: string): Promise<string | null> => {
+  if (!apiKey) return null;
   const formData = new FormData();
   formData.append('image', file);
   try {

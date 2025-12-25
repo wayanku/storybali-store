@@ -16,21 +16,11 @@ export interface Product {
 export interface CategoryConfig {
   id: string;
   name: string;
-  icon: string; // Key of Lucide icon
+  icon: string;
   visible: boolean;
 }
 
-export interface CartItem extends Product {
-  quantity: number;
-}
-
-export enum OrderStatus {
-  PENDING = 'PENDING',
-  PROCESSING = 'DIPROSES',
-  SHIPPED = 'DIKIRIM',
-  DELIVERED = 'SELESAI',
-  CANCELLED = 'DIBATALKAN'
-}
+export type OrderStatus = 'Pending' | 'Diproses' | 'Dikemas' | 'Dikirim' | 'Selesai' | 'Dibatalkan';
 
 export interface Order {
   orderId: string;
@@ -43,6 +33,10 @@ export interface Order {
   timestamp: string;
 }
 
+export interface CartItem extends Product {
+  quantity: number;
+}
+
 export enum AppRoute {
   HOME = 'home',
   CATALOG = 'catalog',
@@ -50,5 +44,5 @@ export enum AppRoute {
   CART = 'cart',
   CHECKOUT = 'checkout',
   ADMIN = 'admin',
-  TRACK_ORDER = 'track-order'
+  TRACKING = 'tracking'
 }
