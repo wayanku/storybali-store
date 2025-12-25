@@ -3,7 +3,7 @@
 <html lang="id">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0">
   <title>StoryBali Store - Artisan Cultural Heritage</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@200;300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet">
@@ -11,35 +11,38 @@
     :root {
       --font-jakarta: 'Plus Jakarta Sans', sans-serif;
       --font-playfair: 'Playfair Display', serif;
+      --bali-red: #ee4d2d;
+      --ubud-green: #065f46;
     }
     body {
       font-family: var(--font-jakarta);
-      background-color: #f5f5f4;
+      background-color: #f8f8f7;
       color: #1c1917;
+      -webkit-tap-highlight-color: transparent;
     }
     h1, h2, h3, .serif {
       font-family: var(--font-playfair);
     }
-    .animate-fade-in {
-      animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(20px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    ::-webkit-scrollbar {
-      width: 6px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #f5f5f4;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #065f46;
-      border-radius: 20px;
-    }
-    /* Shopee/Luxury Blend */
     .shopee-shadow {
       box-shadow: 0 1px 1px 0 rgba(0,0,0,.05);
+    }
+    /* Smooth Transitions */
+    .transition-custom {
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* Hide scrollbar but keep functionality */
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    /* Mobile optimization */
+    @media (max-width: 768px) {
+      .main-content {
+        padding-bottom: 80px;
+      }
     }
   </style>
 <script type="importmap">
@@ -57,7 +60,7 @@
 }
 </script>
 </head>
-<body class="bg-stone-50 text-stone-900">
+<body>
   <div id="root"></div>
   <script type="module" src="/index.tsx"></script>
 </body>

@@ -3,74 +3,70 @@ import { Product } from '../types';
 
 /**
  * Fungsi untuk mengambil data dari Google Sheets.
- * Sekarang mendukung pemetaan kolom otomatis (bahasa Indonesia/Inggris).
  */
 export const getStoreData = async (scriptUrl: string): Promise<Product[] | null> => {
   if (!scriptUrl) return null;
   
   try {
     const url = new URL(scriptUrl);
-    url.searchParams.set('_t', Date.now().toString());
+    url.searchParams.set('_t', Date.now().toString()); // Anti-cache
 
     const response = await fetch(url.toString(), {
       method: 'GET',
       mode: 'cors'
     });
 
-    if (!response.ok) throw new Error('Gagal mengambil data dari Google Sheets');
+    if (!response.ok) throw new Error('Network response was not ok');
     const data = await response.json();
     
-    // Pemetaan kolom agar fleksibel (misal di Sheet namanya 'Gambar' bukan 'images')
-    const sanitizedData = Array.isArray(data) ? data.map((p: any) => {
-      // Normalisasi field dari berbagai kemungkinan nama kolom di Sheets
-      const rawImages = p.images || p.image || p.gambar || p.Gambar || p.url_gambar || '';
-      const rawName = p.name || p.nama || p.Nama_Produk || 'Produk Tanpa Nama';
-      const rawPrice = p.price || p.harga || p.Harga || 0;
-      const rawDesc = p.description || p.deskripsi || p.Deskripsi || '';
-      const rawCategory = p.category || p.kategori || p.Kategori || 'Umum';
-      const rawId = p.id || p.ID || Date.now().toString();
+    if (!Array.isArray(data)) return [];
 
+    return data.map((p: any) => {
+      // LOGIKA PARSING GAMBAR YANG SANGAT KUAT
+      let rawImages = p.images || p.image || p.gambar || p.Gambar || '';
       let parsedImages: string[] = [];
 
-      if (Array.isArray(rawImages)) {
-        parsedImages = rawImages;
-      } else if (typeof rawImages === 'string' && rawImages.trim() !== '') {
-        const trimmed = rawImages.trim();
-        // Cek apakah format JSON array: ["url1", "url2"]
-        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-          try {
+      try {
+        if (Array.isArray(rawImages)) {
+          parsedImages = rawImages;
+        } else if (typeof rawImages === 'string' && rawImages.trim() !== '') {
+          const trimmed = rawImages.trim();
+          // Jika formatnya JSON array: ["url1"]
+          if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
             parsedImages = JSON.parse(trimmed);
-          } catch (e) {
-            parsedImages = trimmed.replace(/[\[\]"]/g, '').split(',').map(s => s.trim());
+          } else if (trimmed.includes(',')) {
+            // Jika formatnya CSV: url1,url2
+            parsedImages = trimmed.split(',').map(s => s.trim());
+          } else {
+            // Jika link tunggal
+            parsedImages = [trimmed];
           }
-        } else if (trimmed.includes(',')) {
-          // Format CSV: url1, url2
-          parsedImages = trimmed.split(',').map(s => s.trim());
-        } else {
-          // Hanya satu URL
-          parsedImages = [trimmed];
         }
+      } catch (e) {
+        console.error("Gagal parsing gambar untuk produk:", p.name, e);
+        parsedImages = [];
       }
 
-      // Pastikan hanya link valid yang masuk
+      // Pastikan hanya link http/https yang masuk dan buang string kosong
       parsedImages = parsedImages.filter(img => typeof img === 'string' && img.startsWith('http'));
 
-      return {
-        ...p, // simpan data asli lainnya
-        id: String(rawId),
-        name: String(rawName),
-        price: Number(rawPrice),
-        originalPrice: p.originalPrice || p.harga_coret ? Number(p.originalPrice || p.harga_coret) : undefined,
-        images: parsedImages.length > 0 ? parsedImages : ['https://via.placeholder.com/600x600?text=StoryBali+Store'],
-        category: String(rawCategory),
-        description: String(rawDesc),
-        story: String(p.story || p.cerita || ''),
-        rating: Number(p.rating || 5),
-        soldCount: Number(p.soldCount || p.terjual || 0)
-      };
-    }) : [];
+      if (parsedImages.length === 0) {
+        parsedImages = ['https://via.placeholder.com/600x600?text=StoryBali+Store'];
+      }
 
-    return sanitizedData as Product[];
+      return {
+        ...p,
+        id: String(p.id || Date.now()),
+        name: String(p.name || 'Produk Tanpa Nama'),
+        price: Number(p.price || 0),
+        images: parsedImages, // Sekarang dijamin berupa array of strings
+        category: String(p.category || 'Umum'),
+        description: String(p.description || ''),
+        story: String(p.story || ''),
+        rating: Number(p.rating || 5),
+        soldCount: Number(p.soldCount || 0)
+      };
+    });
   } catch (error) {
     console.error('Fetch Cloud Data Error:', error);
     return null;
@@ -78,35 +74,39 @@ export const getStoreData = async (scriptUrl: string): Promise<Product[] | null>
 };
 
 /**
- * Mengirim data ke Google Sheets. 
- * Data images dikonversi ke JSON string agar tersimpan utuh di satu sel.
+ * Mengirim data ke Google Sheets.
  */
 export const updateStoreData = async (scriptUrl: string, products: Product[]): Promise<boolean> => {
   if (!scriptUrl) return false;
 
   try {
+    // Pastikan images di-stringify agar muat di satu sel Sheets
     const payload = products.map(p => ({
       ...p,
-      // Penting: simpan images sebagai string agar tidak pecah di kolom Sheets
-      images: JSON.stringify(p.images)
+      images: Array.isArray(p.images) ? JSON.stringify(p.images) : p.images
     }));
 
     const response = await fetch(scriptUrl, {
       method: 'POST',
-      body: JSON.stringify({ products: payload }),
+      mode: 'no-cors', // Penting untuk Apps Script agar tidak kena CORS preflight
       headers: {
-        'Content-Type': 'text/plain;charset=utf-8',
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ products: payload }),
     });
 
-    const result = await response.json();
-    return result.status === 'success';
+    // Karena no-cors, kita tidak bisa baca response body secara detail, 
+    // tapi kita asumsikan sukses jika tidak ada error throw.
+    return true;
   } catch (error) {
     console.error('Update Cloud Data Error:', error);
     return false;
   }
 };
 
+/**
+ * Upload ke ImgBB.
+ */
 export const uploadImageToImgBB = async (file: File, apiKey: string): Promise<string | null> => {
   if (!apiKey) return null;
   
@@ -119,8 +119,8 @@ export const uploadImageToImgBB = async (file: File, apiKey: string): Promise<st
       body: formData,
     });
     const result = await response.json();
-    if (result.success) {
-      return result.data.url;
+    if (result.success && result.data && result.data.url) {
+      return result.data.url; // Ini adalah direct link
     }
     return null;
   } catch (error) {
