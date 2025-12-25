@@ -1,96 +1,101 @@
 
 import { Product } from './types';
 
+/** 
+ * KONFIGURASI GLOBAL 
+ */
 export const GLOBAL_CONFIG = {
+  // Master Script URL (Google Sheets)
   MASTER_SCRIPT_URL: 'https://script.google.com/macros/s/AKfycbyOlXuKnI7GMry31xegxRZdPvvWw7X4QdGvcZl_3Pn6_ikdNE4zIUqCMAGNQ94CDx5ljA/exec', 
+  // API Key ImgBB
   MASTER_IMGBB_KEY: '7e6f3ce63649d305ccaceea00c28266d',
-  ADMIN_PASSWORD: 'admin' 
+  // Password Admin
+  ADMIN_PASSWORD: 'admin123' 
 };
 
 export const INITIAL_PRODUCTS: Product[] = [
   {
     id: '1',
-    name: 'Smartphone Pro Max 256GB - Garansi Resmi',
-    price: 18500000,
-    originalPrice: 19999000,
+    name: 'iPhone 15 Pro Max 256GB - Titanium Gray',
+    price: 18499000,
+    originalPrice: 20999000,
     category: 'Elektronik',
-    description: 'Smartphone flagship terbaru dengan kamera 48MP, layar ProMotion 120Hz, dan ketahanan baterai sepanjang hari.',
+    description: 'Smartphone unggulan terbaru dengan chip A17 Pro, sistem kamera pro yang canggih, dan desain titanium yang ringan dan kuat.',
     images: [
-      'https://images.unsplash.com/photo-1616348436168-de43ad0db179?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1696446701796-da61225697cc?auto=format&fit=crop&q=80&w=800'
     ],
-    story: 'Pilihan terbaik untuk produktivitas dan fotografi mobile tingkat profesional.',
+    story: 'Teknologi masa depan dalam genggaman Anda. Dibuat untuk performa tanpa batas.',
     rating: 4.9,
-    soldCount: 840,
-    discountTag: '8% OFF'
+    soldCount: 450,
+    discountTag: 'HOT DEAL'
   },
   {
     id: '2',
-    name: 'Sneakers Running Aero Boost - White Edition',
-    price: 1250000,
-    originalPrice: 1500000,
-    category: 'Fashion',
-    description: 'Sepatu lari ringan dengan teknologi bantalan responsif untuk kenyamanan maksimal saat berolahraga atau harian.',
+    name: 'Sony WH-1000XM5 Wireless Noise Cancelling Headphones',
+    price: 5299000,
+    originalPrice: 5999000,
+    category: 'Elektronik',
+    description: 'Headphone peredam bising terbaik di industri dengan kualitas audio luar biasa dan kenyamanan sepanjang hari.',
     images: [
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1618366712277-70779c74585f?auto=format&fit=crop&q=80&w=800'
     ],
-    story: 'Didesain untuk performa tinggi dengan sirkulasi udara optimal.',
-    rating: 4.7,
-    soldCount: 2300,
-    discountTag: 'FLASH SALE'
+    story: 'Dengarkan dunia dalam kejernihan sempurna tanpa gangguan suara luar.',
+    rating: 4.8,
+    soldCount: 890,
+    discountTag: '12% OFF'
   },
   {
     id: '3',
-    name: 'Serum Wajah Brightening 30ml - Vitamin C + Hyaluronic',
-    price: 185000,
-    category: 'Kecantikan',
-    description: 'Serum pencerah kulit yang membantu menyamarkan noda hitam dan menghidrasi kulit secara mendalam.',
+    name: 'Sepatu Lari Nike Air Zoom Pegasus 40 - Unisex',
+    price: 1899000,
+    category: 'Fashion',
+    description: 'Sepatu lari ikonik dengan bantalan responsif yang memberikan kenyamanan maksimal untuk setiap langkah lari Anda.',
     images: [
-      'https://images.unsplash.com/photo-1620916566398-39f1143f2c00?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&q=80&w=800'
     ],
-    story: 'Formulasi dermatologis yang aman untuk semua jenis kulit.',
-    rating: 4.8,
-    soldCount: 5600,
-    discountTag: 'BEST SELLER'
+    story: 'Kombinasi sempurna antara performa atletik dan gaya streetwear global.',
+    rating: 4.7,
+    soldCount: 2300
   },
   {
     id: '4',
-    name: 'Smartwatch Series 9 - GPS 45mm Black Case',
-    price: 6499000,
-    originalPrice: 7200000,
-    category: 'Gadget',
-    description: 'Pantau kesehatan dan notifikasi Anda dengan mudah melalui layar retina yang selalu aktif.',
+    name: 'Skincare Set Premium Advanced Night Repair',
+    price: 2450000,
+    category: 'Wellness',
+    description: 'Paket lengkap perawatan wajah malam hari untuk regenerasi kulit maksimal dan mencegah penuaan dini.',
     images: [
-      'https://images.unsplash.com/photo-1546868871-7041f2a55e12?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1556228720-195a672e8a03?auto=format&fit=crop&q=80&w=800'
     ],
-    story: 'Pendamping setia untuk gaya hidup aktif dan terorganisir.',
+    story: 'Keajaiban kecantikan yang dipercaya oleh jutaan wanita di seluruh dunia.',
     rating: 4.9,
-    soldCount: 120,
-    discountTag: '10% OFF'
+    soldCount: 1500,
+    discountTag: 'Bestseller'
   },
   {
     id: '5',
-    name: 'Coffee Maker Otomatis - Espresso & Cappuccino',
-    price: 3450000,
-    category: 'Rumah Tangga',
-    description: 'Buat kopi kualitas kafe di rumah Anda hanya dengan satu sentuhan tombol.',
+    name: 'Mechanical Keyboard Wireless RGB G-Pro',
+    price: 1299000,
+    originalPrice: 1599000,
+    category: 'Elektronik',
+    description: 'Keyboard mekanik minimalis dengan switch hotswappable dan pencahayaan RGB kustom yang memukau.',
     images: [
-      'https://images.unsplash.com/photo-1517668808822-9ebb02f2a0e6?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?auto=format&fit=crop&q=80&w=800'
     ],
-    story: 'Teknologi ekstraksi tekanan tinggi untuk aroma yang sempurna.',
+    story: 'Tingkatkan produktivitas dan pengalaman gaming Anda ke level profesional.',
     rating: 4.6,
-    soldCount: 45
+    soldCount: 670
   },
   {
     id: '6',
-    name: 'Headphones Wireless Noise Cancelling V2',
-    price: 4200000,
-    category: 'Elektronik',
-    description: 'Nikmati musik tanpa gangguan dengan teknologi peredam kebisingan aktif terbaik di kelasnya.',
+    name: 'Tas Ransel Laptop Anti-Theft Water Resistant',
+    price: 450000,
+    category: 'Fashion',
+    description: 'Tas ransel modern dengan port USB charging dan material tahan air, cocok untuk traveler dan profesional urban.',
     images: [
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?auto=format&fit=crop&q=80&w=800'
+      'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?auto=format&fit=crop&q=80&w=800'
     ],
-    story: 'Baterai tahan hingga 30 jam untuk menemani perjalanan jauh Anda.',
-    rating: 4.8,
-    soldCount: 156
+    story: 'Keamanan dan gaya yang menyatu untuk mobilitas harian Anda.',
+    rating: 4.5,
+    soldCount: 3100
   }
 ];

@@ -1,9 +1,8 @@
 {
-  "name": "StoryBali General Store",
-  "description": "Platform e-commerce modern dengan fitur lengkap: Flash Sale, AI Assistant, dan Sinkronisasi Cloud.",
+  "name": "StoryStore Global Pro",
+  "description": "Platform e-commerce universal dengan asisten AI pintar dan sinkronisasi Cloud real-time.",
   "requestFramePermissions": [
     "camera",
-    "microphone",
-    "geolocation"
+    "microphone"
   ]
 }

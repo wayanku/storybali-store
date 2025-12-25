@@ -1,90 +1,61 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// Initialize Gemini client with the provided API key
-const getAI = () => new GoogleGenAI({ apiKey: process.env.API_KEY });
-
-// Enhance product descriptions using Gemini
 export const getProductEnhancement = async (productName: string, currentDesc: string): Promise<string> => {
   try {
-    const ai = getAI();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
-      contents: `Anda adalah copywriter senior untuk marketplace besar. Tulis deskripsi produk yang sangat persuasif, SEO friendly, dan elegan untuk "${productName}". Deskripsi asli: "${currentDesc}". Gunakan bullet points untuk fitur utama. Maks 150 kata.`,
+      contents: `Anda adalah copywriter e-commerce global profesional untuk StoryStore. Tulis deskripsi produk yang persuasif, menonjolkan fitur utama, dan menggunakan bahasa Indonesia yang elegan dan modern untuk "${productName}". Deskripsi aslinya adalah: "${currentDesc}". Buat pembaca merasa produk ini adalah solusi terbaik untuk gaya hidup mereka. Tetap di bawah 80 kata.`,
     });
     return response.text || currentDesc;
   } catch (error) {
+    console.error("Gemini Error:", error);
     return currentDesc;
   }
 };
 
-// Chat with virtual store assistant
 export const chatWithStoreAssistant = async (history: any[], message: string): Promise<string> => {
   try {
-    const ai = getAI();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
       config: {
-        systemInstruction: `Anda adalah 'StoryAdvisor', asisten belanja cerdas dari StoryBali Store. 
-        Tugas Anda:
-        1. Bantu pengguna mencari produk (Elektronik, Fashion, Gadget, dll).
-        2. Berikan saran belanja berdasarkan tren terbaru di Indonesia.
-        3. Jawab pertanyaan tentang garansi, pengiriman, dan stok dengan ramah dan profesional.
-        4. Jika ditanya soal Bali, jelaskan bahwa meskipun namanya StoryBali, toko ini adalah marketplace umum nasional yang mengutamakan kualitas.
-        Gunakan bahasa Indonesia yang santun tapi modern.`,
+        systemInstruction: 'Anda adalah Aira, asisten belanja virtual pintar dari StoryStore. Anda sangat ahli dalam tren teknologi, fashion global, dan lifestyle. Sapa pelanggan dengan ramah secara profesional (misal: "Halo! Selamat datang di StoryStore"). Bantu mereka membandingkan produk, memberikan rekomendasi hadiah, atau menjawab pertanyaan teknis tentang barang di toko kami dengan bahasa yang cerdas dan efisien.',
       }
     });
     const response = await chat.sendMessage({ message });
-    return response.text || "Mohon maaf, saya sedang memproses informasi. Ada lagi yang bisa saya bantu?";
+    return response.text || "Mohon maaf, sistem asisten sedang dalam pemeliharaan singkat. Ada yang bisa saya bantu lainnya?";
   } catch (error) {
-    return "Ada gangguan koneksi, tapi saya tetap di sini untuk Anda!";
+    console.error("Chat Error:", error);
+    return "Maaf, koneksi saya terputus. Bisa Anda ulangi pertanyaannya?";
   }
 };
 
-// Get viral shopping trends using Google Search grounding
-export const getShoppingLiveTrends = async (): Promise<{text: string, sources: any[]}> => {
+export const generateMarketingImage = async (productName: string): Promise<string | null> => {
   try {
-    const ai = getAI();
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: "Berikan update 3 tren belanja online paling viral di Indonesia minggu ini. Fokus pada barang elektronik, gadget, atau fashion.",
-      config: {
-        tools: [{googleSearch: {}}],
+      model: 'gemini-2.5-flash-image',
+      contents: {
+        parts: [{ text: `A clean, professional minimalist commercial photography for "${productName}". Studio lighting, neutral grey background, high-end commercial aesthetic, 8k resolution, sharp focus.` }]
       },
-    });
-    return {
-      text: response.text || "Gagal memuat tren terbaru.",
-      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
-    };
-  } catch (error) {
-    return { text: "Tren belanja sedang diperbarui.", sources: [] };
-  }
-};
-
-/**
- * findNearestServiceCenters finds physical service locations using Google Maps grounding.
- * Maps grounding is supported in Gemini 2.5 series models.
- */
-export const findNearestServiceCenters = async (lat?: number, lng?: number): Promise<{text: string, sources: any[]}> => {
-  try {
-    const ai = getAI();
-    const response = await ai.models.generateContent({
-      model: "gemini-2.5-flash-lite-latest",
-      contents: "Sebutkan 3 lokasi service center resmi gadget atau elektronik terkemuka di Indonesia.",
       config: {
-        tools: [{googleMaps: {}}],
-        toolConfig: {
-          retrievalConfig: {
-            latLng: (lat !== undefined && lng !== undefined) ? { latitude: lat, longitude: lng } : undefined
-          }
+        imageConfig: {
+          aspectRatio: "1:1"
         }
-      },
+      }
     });
-    return {
-      text: response.text || "Informasi layanan servis tidak tersedia.",
-      sources: response.candidates?.[0]?.groundingMetadata?.groundingChunks || []
-    };
+
+    if (response.candidates?.[0]?.content?.parts) {
+      for (const part of response.candidates[0].content.parts) {
+        if (part.inlineData) {
+          return `data:image/png;base64,${part.inlineData.data}`;
+        }
+      }
+    }
   } catch (error) {
-    return { text: "Gagal memuat informasi layanan terdekat.", sources: [] };
+    console.error("Image Generation Error:", error);
   }
+  return null;
 };
