@@ -17,10 +17,10 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, cartCount }) => {
            onClick={() => onNavigate(AppRoute.HOME)}
            className="flex items-center gap-3 cursor-pointer shrink-0 group"
          >
-            <div className="w-10 h-10 md:w-12 md:h-12 bg-[#ee4d2d] text-white rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl shadow-xl shadow-orange-100 group-hover:scale-105 transition-transform">SS</div>
+            <div className="w-10 h-10 md:w-12 md:h-12 bg-[#ee4d2d] text-white rounded-2xl flex items-center justify-center font-black text-xl md:text-2xl shadow-xl shadow-orange-100 group-hover:scale-105 transition-transform">SB</div>
             <div className="hidden sm:block">
-               <h1 className="text-stone-900 text-xl md:text-2xl font-bold tracking-tight leading-none">StoryStore</h1>
-               <p className="text-[8px] md:text-[9px] text-gray-400 font-black uppercase tracking-[0.3em]">Global Marketplace</p>
+               <h1 className="text-stone-900 text-xl md:text-2xl font-bold tracking-tight leading-none">StoryBali</h1>
+               <p className="text-[8px] md:text-[9px] text-gray-400 font-black uppercase tracking-[0.3em]">Pasar Global Premium</p>
             </div>
          </div>
 
@@ -42,7 +42,7 @@ const Navbar: React.FC<NavbarProps> = ({ onNavigate, cartCount }) => {
          <div className="flex items-center gap-2 md:gap-6">
             <div className="hidden md:flex items-center gap-4 border-r border-stone-100 pr-6">
                <button className="text-stone-400 hover:text-stone-900 transition-colors"><Bell size={20}/></button>
-               <button onClick={() => onNavigate(AppRoute.ADMIN)} className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-[#ee4d2d] transition-colors">Seller Center</button>
+               <button onClick={() => onNavigate(AppRoute.ADMIN)} className="text-[10px] font-black uppercase tracking-widest text-stone-400 hover:text-[#ee4d2d] transition-colors">Pusat Penjual</button>
             </div>
             
             <div 

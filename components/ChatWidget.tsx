@@ -1,12 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircle, X, Send, Sparkles, UserCheck } from 'lucide-react';
+import { MessageCircle, X, Send, Sparkles } from 'lucide-react';
 import { chatWithStoreAssistant } from '../services/geminiService';
 
 const ChatWidget: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{role: 'user' | 'bot', text: string}[]>([
-    { role: 'bot', text: 'Halo! Saya Aira, asisten belanja pintar Anda. Ada yang bisa saya bantu temukan hari ini di StoryStore?' }
+    { role: 'bot', text: 'Halo! Saya Aira, asisten belanja pintar Anda. Ada yang bisa saya bantu temukan hari ini di StoryBali Store?' }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -44,10 +44,10 @@ const ChatWidget: React.FC = () => {
                 <Sparkles size={20} />
               </div>
               <div>
-                <p className="font-bold text-sm tracking-tight">Aira (Shopping AI)</p>
+                <p className="font-bold text-sm tracking-tight">Aira (AI Belanja)</p>
                 <div className="flex items-center gap-1.5">
                    <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse"></div>
-                   <p className="text-[9px] text-stone-500 font-black uppercase tracking-widest">Global Support</p>
+                   <p className="text-[9px] text-stone-500 font-black uppercase tracking-widest">Dukungan Aktif</p>
                 </div>
               </div>
             </div>
@@ -114,7 +114,7 @@ const ChatWidget: React.FC = () => {
              {isOpen ? <X size={20}/> : <MessageCircle size={24} />}
           </div>
           <span className="max-w-0 overflow-hidden group-hover:max-w-xs transition-all duration-500 font-black text-[10px] uppercase tracking-[0.3em] whitespace-nowrap">
-            Ask Aira Shopping
+            Tanya Aira Belanja
           </span>
         </div>
       </button>

@@ -6,31 +6,11 @@ export interface Product {
   originalPrice?: number;
   description: string;
   category: string;
-  images: string[];
+  images: string[]; // Diubah menjadi array string
   story: string;
   rating: number;
   soldCount: number;
   discountTag?: string;
-}
-
-export interface CategoryConfig {
-  id: string;
-  name: string;
-  icon: string;
-  visible: boolean;
-}
-
-export type OrderStatus = 'Pending' | 'Diproses' | 'Dikemas' | 'Dikirim' | 'Selesai' | 'Dibatalkan';
-
-export interface Order {
-  orderId: string;
-  customerName: string;
-  phone: string;
-  address: string;
-  items: string;
-  total: number;
-  status: OrderStatus;
-  timestamp: string;
 }
 
 export interface CartItem extends Product {
@@ -43,6 +23,5 @@ export enum AppRoute {
   PRODUCT_DETAIL = 'product-detail',
   CART = 'cart',
   CHECKOUT = 'checkout',
-  ADMIN = 'admin',
-  TRACKING = 'tracking'
+  ADMIN = 'admin'
 }

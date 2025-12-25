@@ -10,7 +10,7 @@ export const GLOBAL_CONFIG = {
   // API Key ImgBB
   MASTER_IMGBB_KEY: '7e6f3ce63649d305ccaceea00c28266d',
   // Password Admin
-  ADMIN_PASSWORD: 'admin123' 
+  ADMIN_PASSWORD: '123' 
 };
 
 export const INITIAL_PRODUCTS: Product[] = [
